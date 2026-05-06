@@ -73,24 +73,31 @@ const LoginPage: React.FC = () => {
     setErrors({});
 
     try {
-      // Endpoint universal — backend yang menentukan role
-      const response = await api.post('/auth/login', {
-        NIK: form.NIK,
-        password: form.password,
-      });
+      // --- MOCK API KARENA BACKEND BELUM SIAP ---
+      // Simulasi delay jaringan 1 detik
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      
+      let role = 'user';
+      let name = 'Warga Karangasem';
+      const token = 'mock_jwt_token_12345';
 
-      const { token, role, name } = response.data;
+      // Simulasi logika backend: jika NIK berisi kata 'admin', masuk ke dashboard admin
+      if (form.NIK.toLowerCase() === 'admin') {
+        role = 'admin';
+        name = 'Admin Desa';
+      }
 
       localStorage.setItem('siades_token', token);
-      localStorage.setItem('siades_role', role || 'user');
-      if (name) localStorage.setItem('siades_name', name);
+      localStorage.setItem('siades_role', role);
+      localStorage.setItem('siades_name', name);
 
-      // Routing berdasarkan role dari backend
+      // Routing berdasarkan role
       if (role === 'admin' || role === 'ADMIN') {
         navigate('/admin/dashboard');
       } else {
-        navigate('/beranda');
+        navigate('/warga/dashboard');
       }
+      // ------------------------------------------
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string }; status?: number } };
       if (err.response?.status === 401 || err.response?.status === 400) {
