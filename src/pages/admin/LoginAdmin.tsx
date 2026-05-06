@@ -23,29 +23,30 @@ import logoDesaImg from '../../assets/logo-desa.png';
  */
 
 interface LoginForm {
-  email: string;
+  NIK: string;
   password: string;
 }
 
 interface LoginErrors {
-  email?: string;
+  NIK?: string;
   password?: string;
   general?: string;
 }
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const [form, setForm] = useState<LoginForm>({ email: '', password: '' });
+  const [form, setForm] = useState<LoginForm>({ NIK: '', password: '' });
   const [errors, setErrors] = useState<LoginErrors>({});
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const validate = (): boolean => {
     const newErrors: LoginErrors = {};
-    if (!form.email) {
-      newErrors.email = 'Email tidak boleh kosong';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      newErrors.email = 'Format email tidak valid';
+    if (!form.NIK) {
+      newErrors.NIK = 'NIK tidak boleh kosong';
+    }
+    if (!form.password) {
+      newErrors.password = 'Password tidak boleh kosong';
     }
     if (!form.password) {
       newErrors.password = 'Password tidak boleh kosong';
@@ -74,7 +75,7 @@ const LoginPage: React.FC = () => {
     try {
       // Endpoint universal — backend yang menentukan role
       const response = await api.post('/auth/login', {
-        email: form.email,
+        NIK: form.NIK,
         password: form.password,
       });
 
@@ -140,23 +141,23 @@ const LoginPage: React.FC = () => {
           )}
 
           <form onSubmit={handleSubmit} noValidate>
-            {/* Email */}
+            {/* NIK */}
             <div className="mb-5">
-              <label htmlFor="email" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
-                Email
+              <label htmlFor="NIK" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
+                NIK
               </label>
               <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                placeholder="masukkan email anda"
-                value={form.email}
+                id="NIK"
+                name="NIK"
+                type="text"
+                autoComplete="NIK"
+                placeholder="masukkan NIK anda"
+                value={form.NIK}
                 onChange={handleChange}
-                className={`input-field ${errors.email ? 'border-red-400 focus:ring-red-300' : ''}`}
+                className={`input-field ${errors.NIK ? 'border-red-400 focus:ring-red-300' : ''}`}
               />
-              {errors.email && (
-                <p className="mt-1 text-xs text-red-500">{errors.email}</p>
+              {errors.NIK && (
+                <p className="mt-1 text-xs text-red-500">{errors.NIK}</p>
               )}
             </div>
 
