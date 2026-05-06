@@ -44,7 +44,7 @@ const KatalogJasaWarga: React.FC = () => {
             <p className="text-sm text-gray-500 mb-4 flex-1">{item.deskripsi}</p>
             <div className="pt-4 border-t border-gray-100 flex justify-between items-center">
               <div>
-                <p className="text-xs text-gray-400">Penyedia</p>
+                <p className="text-xs text-gray-400">Pemilik</p>
                 <p className="font-semibold text-[#1e3a5f] text-sm">{item.nama}</p>
               </div>
               <div className="text-right">
@@ -63,6 +63,10 @@ const KatalogJasaWarga: React.FC = () => {
           <div>
             <label className="block text-sm font-semibold text-[#1e3a5f] mb-1">Nama Jasa</label>
             <input type="text" required placeholder="Misal: Jasa Servis AC" className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none" />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-[#1e3a5f] mb-1">Nama Pemilik</label>
+            <input type="text" required placeholder="Masukan Nama Pemilik" className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none" />
           </div>
           <div>
             <label className="block text-sm font-semibold text-[#1e3a5f] mb-1">Deskripsi Singkat</label>
