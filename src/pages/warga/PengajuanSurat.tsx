@@ -7,7 +7,7 @@ const PengajuanSurat: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  
+
   const [form, setForm] = useState({
     jenisSurat: 'Surat Keterangan Usaha',
     keperluan: '',
@@ -20,7 +20,7 @@ const PengajuanSurat: React.FC = () => {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    
+
     // Normalize coordinates for both mouse and touch
     let clientX, clientY;
     if ('touches' in e) {
@@ -96,7 +96,7 @@ const PengajuanSurat: React.FC = () => {
       <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-blue-50">
         <h1 className="text-2xl font-bold text-[#1e3a5f] mb-2">Pengajuan Surat</h1>
         <p className="text-gray-500 mb-6">Silakan lengkapi formulir di bawah ini untuk mengajukan pembuatan surat.</p>
-        
+
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-sm font-semibold text-[#1e3a5f] mb-2">Jenis Surat</label>
@@ -126,8 +126,8 @@ const PengajuanSurat: React.FC = () => {
 
           <div>
             <label className="block text-sm font-semibold text-[#1e3a5f] mb-2">Upload Dokumen Pendukung (KTP/KK)</label>
-            <input 
-              type="file" 
+            <input
+              type="file"
               className="block w-full text-sm text-gray-500
                 file:mr-4 file:py-2 file:px-4
                 file:rounded-xl file:border-0
@@ -137,28 +137,6 @@ const PengajuanSurat: React.FC = () => {
             />
           </div>
 
-          <div>
-            <div className="flex justify-between items-end mb-2">
-              <label className="block text-sm font-semibold text-[#1e3a5f]">Tanda Tangan Digital</label>
-              <button type="button" onClick={clearSignature} className="text-xs text-red-500 font-semibold hover:underline">Hapus</button>
-            </div>
-            <div className="border border-gray-300 rounded-xl overflow-hidden bg-gray-50">
-              <canvas
-                ref={canvasRef}
-                width={600}
-                height={200}
-                className="w-full h-[200px] cursor-crosshair touch-none"
-                onMouseDown={startDrawing}
-                onMouseMove={draw}
-                onMouseUp={stopDrawing}
-                onMouseLeave={stopDrawing}
-                onTouchStart={startDrawing}
-                onTouchMove={draw}
-                onTouchEnd={stopDrawing}
-              />
-            </div>
-            <p className="text-xs text-gray-400 mt-1">Tanda tangan di dalam area kotak di atas.</p>
-          </div>
 
           <div className="pt-4">
             <Button
