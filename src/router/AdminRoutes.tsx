@@ -5,7 +5,7 @@ const AdminRoutes = () => {
   const role = localStorage.getItem('siades_role');
 
   const isAuthenticated = !!token;
-  const isAdmin = role === 'admin' || role === 'ADMIN';
+  const isAdmin = role === 'super-admin' || role === 'sekretaris' || role === 'bendahara';
 
   if (!isAuthenticated || !isAdmin) {
     return <Navigate to="/login" replace />;

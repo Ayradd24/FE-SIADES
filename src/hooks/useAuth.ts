@@ -16,12 +16,13 @@ export const useAuth = (): AuthState => {
   const role = localStorage.getItem('siades_role');
 
   const isAuthenticated = !!token;
-  const isAdmin = role === 'admin' || role === 'ADMIN';
+  const isAdmin = role === 'super-admin' || role === 'sekretaris' || role === 'bendahara';
 
   const logout = useCallback(() => {
     localStorage.removeItem('siades_token');
     localStorage.removeItem('siades_role');
-    navigate('/admin/login');
+    localStorage.removeItem('siades_name');
+    navigate('/login');
   }, [navigate]);
 
   return { isAuthenticated, isAdmin, token, role, logout };
