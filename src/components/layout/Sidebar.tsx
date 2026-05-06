@@ -70,7 +70,8 @@ const Sidebar: React.FC = () => {
   const handleLogout = () => {
     localStorage.removeItem('siades_token');
     localStorage.removeItem('siades_role');
-    navigate('/admin/login');
+    localStorage.removeItem('siades_name');
+    navigate('/login');
   };
 
   return (

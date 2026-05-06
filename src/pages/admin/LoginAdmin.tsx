@@ -23,30 +23,27 @@ import logoDesaImg from '../../assets/logo-desa.png';
  */
 
 interface LoginForm {
-  Username: string;
+  username: string;
   password: string;
 }
 
 interface LoginErrors {
-  Username?: string;
+  username?: string;
   password?: string;
   general?: string;
 }
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const [form, setForm] = useState<LoginForm>({ Username: '', password: '' });
+  const [form, setForm] = useState<LoginForm>({ username: '', password: '' });
   const [errors, setErrors] = useState<LoginErrors>({});
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const validate = (): boolean => {
     const newErrors: LoginErrors = {};
-    if (!form.Username) {
-      newErrors.Username = 'Username tidak boleh kosong';
-    }
-    if (!form.password) {
-      newErrors.password = 'Password tidak boleh kosong';
+    if (!form.username) {
+      newErrors.username = 'Username tidak boleh kosong';
     }
     if (!form.password) {
       newErrors.password = 'Password tidak boleh kosong';
@@ -73,39 +70,33 @@ const LoginPage: React.FC = () => {
     setErrors({});
 
     try {
-      // --- MOCK API KARENA BACKEND BELUM SIAP ---
-      // Simulasi delay jaringan 1 detik
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const response = await api.post('/login', {
+        username: form.username,
+        password: form.password,
+      });
 
-      let role = 'user';
-      let name = 'Warga Karangasem';
-      const token = 'mock_jwt_token_12345';
-
-      // Simulasi logika backend: jika Username berisi kata 'admin', masuk ke dashboard admin
-      if (form.Username.toLowerCase() === 'admin') {
-        role = 'admin';
-        name = 'Admin Desa';
-      }
+      const { token, user } = response.data;
+      const role = user.roles[0]; // Ambil role pertama (misal: 'warga' atau 'super-admin')
+      const name = user.name;
 
       localStorage.setItem('siades_token', token);
       localStorage.setItem('siades_role', role);
       localStorage.setItem('siades_name', name);
 
       // Routing berdasarkan role
-      if (role === 'admin' || role === 'ADMIN') {
+      if (role === 'super-admin' || role === 'sekretaris' || role === 'bendahara') {
         navigate('/admin/dashboard');
       } else {
         navigate('/warga/dashboard');
       }
-      // ------------------------------------------
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string }; status?: number } };
-      if (err.response?.status === 401 || err.response?.status === 400) {
-        setErrors({ general: 'Email atau password salah. Silakan coba lagi.' });
+      if (err.response?.status === 401) {
+        setErrors({ general: 'Username atau password salah.' });
       } else if (err.response?.data?.message) {
         setErrors({ general: err.response.data.message });
       } else {
-        setErrors({ general: 'Terjadi kesalahan. Silakan coba beberapa saat lagi.' });
+        setErrors({ general: 'Terjadi kesalahan pada server. Pastikan backend menyala.' });
       }
     } finally {
       setLoading(false);
@@ -150,21 +141,21 @@ const LoginPage: React.FC = () => {
           <form onSubmit={handleSubmit} noValidate>
             {/* Username */}
             <div className="mb-5">
-              <label htmlFor="Username" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
+              <label htmlFor="username" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
                 Username
               </label>
               <input
-                id="Username"
-                name="Username"
+                id="username"
+                name="username"
                 type="text"
-                autoComplete="Username"
+                autoComplete="username"
                 placeholder="masukkan Username anda"
-                value={form.Username}
+                value={form.username}
                 onChange={handleChange}
-                className={`input-field ${errors.Username ? 'border-red-400 focus:ring-red-300' : ''}`}
+                className={`input-field ${errors.username ? 'border-red-400 focus:ring-red-300' : ''}`}
               />
-              {errors.Username && (
-                <p className="mt-1 text-xs text-red-500">{errors.Username}</p>
+              {errors.username && (
+                <p className="mt-1 text-xs text-red-500">{errors.username}</p>
               )}
             </div>
 

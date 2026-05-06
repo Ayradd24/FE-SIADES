@@ -99,13 +99,12 @@ const RegisterPage: React.FC = () => {
     setErrors({});
 
     try {
-      await api.post('/auth/register', {
-        namaLengkap: form.namaLengkap,
-        NIK: form.NIK,
-        nomorkk: form.nomorkk,
+      await api.post('/register', {
+        name: form.namaLengkap,
+        nik: form.NIK,
+        no_kk: form.nomorkk,
         username: form.username,
         password: form.password,
-        konfirmasiPassword: form.konfirmasiPassword,
       });
 
       navigate('/login', { state: { successMessage: 'Akun berhasil dibuat! Silakan masuk.' } });
