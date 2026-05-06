@@ -10,6 +10,7 @@ interface IuranWarga {
   id: string | number;
   namaWarga: string;
   rtRw: string;
+  kategori: string;
   bulan: string;
   nominal: number;
   status: 'Lunas' | 'Belum';
@@ -24,13 +25,15 @@ interface IuranStats {
 
 const MOCK_STATS: IuranStats = { totalSaldo: 15500000, terkumpulBulanIni: 2000000, wargaBelumLunas: 12 };
 const MOCK_IURAN: IuranWarga[] = [
-  { id: 1, namaWarga: 'Budi Santoso', rtRw: '002/005', bulan: 'Oktober', nominal: 50000, status: 'Lunas', tanggalBayar: '2025-10-05' },
-  { id: 2, namaWarga: 'Subarjo', rtRw: '003/005', bulan: 'Oktober', nominal: 50000, status: 'Belum' },
-  { id: 3, namaWarga: 'Surti', rtRw: '007/005', bulan: 'Oktober', nominal: 50000, status: 'Lunas', tanggalBayar: '2025-10-03' },
-  { id: 4, namaWarga: 'Herman Sumanto', rtRw: '002/005', bulan: 'Oktober', nominal: 50000, status: 'Belum' },
+  { id: 1, namaWarga: 'Budi Santoso', rtRw: '002/005', kategori: 'Iuran Wajib', bulan: 'Oktober', nominal: 50000, status: 'Lunas', tanggalBayar: '2025-10-05' },
+  { id: 2, namaWarga: 'Subarjo', rtRw: '003/005', kategori: 'Sumbangan Sukarela', bulan: 'Oktober', nominal: 50000, status: 'Belum' },
+  { id: 3, namaWarga: 'Surti', rtRw: '007/005', kategori: 'Iuran Wajib', bulan: 'Oktober', nominal: 50000, status: 'Lunas', tanggalBayar: '2025-10-03' },
+  { id: 4, namaWarga: 'Herman Sumanto', rtRw: '002/005', kategori: 'Denda Keterlambatan', bulan: 'Oktober', nominal: 50000, status: 'Belum' },
 ];
 
 const BULAN_OPTIONS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+const RT_OPTIONS = ['Semua', '001', '002', '003', '004', '005', '006', '007', '008', '009', '010'];
+const RW_OPTIONS = ['Semua', '001', '002', '003', '004', '005', '006', '007', '008', '009', '010'];
 const ITEMS_PER_PAGE = 10;
 
 const ManajemenIuran: React.FC = () => {
@@ -47,8 +50,29 @@ const ManajemenIuran: React.FC = () => {
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
-  const [iuranForm, setIuranForm] = useState({ nominal: '50000', keterangan: '', bulan: 'Oktober' });
+  const [iuranForm, setIuranForm] = useState({
+    nominal: '50000',
+    kategori: '',
+    bulan: 'Oktober',
+    rt: 'Semua',
+    rw: 'Semua',
+  });
   const [formLoading, setFormLoading] = useState(false);
+
+  // Kategori state
+  const [kategoriOptions, setKategoriOptions] = useState<string[]>(['Iuran Wajib', 'Sumbangan Sukarela', 'Denda Keterlambatan',]);
+  const [kategoriModalOpen, setKategoriModalOpen] = useState(false);
+  const [newKategori, setNewKategori] = useState('');
+
+  const handleAddKategori = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newKategori.trim()) {
+      setKategoriOptions([...kategoriOptions, newKategori.trim()]);
+      setNewKategori('');
+      setKategoriModalOpen(false);
+      showToast('Kategori iuran berhasil ditambahkan', 'success');
+    }
+  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -119,17 +143,30 @@ const ManajemenIuran: React.FC = () => {
       <ToastContainer toasts={toasts} onRemove={removeToast} />
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-extrabold text-[#1e3a5f]">Manajemen Iuran & Kas Desa</h1>
-        <Button
-          variant="primary"
-          onClick={() => setModalOpen(true)}
-          icon={
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-          }
-        >
-          Update Informasi
-        </Button>
+        <div className="flex gap-3">
+          <Button
+            variant="secondary"
+            onClick={() => setKategoriModalOpen(true)}
+            icon={
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            }
+          >
+            Kategori
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => setModalOpen(true)}
+            icon={
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            }
+          >
+            Tambahkan Iuran
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -204,7 +241,7 @@ const ManajemenIuran: React.FC = () => {
           <table className="w-full">
             <thead>
               <tr className="bg-blue-400 text-white">
-                {['No', 'Nama Warga', 'RT/RW', 'Bulan', 'Nominal', 'Status', 'Aksi'].map((h) => (
+                {['No', 'Nama Warga', 'RT/RW', 'Kategori', 'Bulan', 'Nominal', 'Status', 'Aksi'].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-sm font-semibold whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -213,14 +250,14 @@ const ManajemenIuran: React.FC = () => {
               {loading ? (
                 Array.from({ length: 4 }).map((_, i) => (
                   <tr key={i} className="border-b border-gray-100 animate-pulse">
-                    {Array.from({ length: 7 }).map((__, j) => (
+                    {Array.from({ length: 8 }).map((__, j) => (
                       <td key={j} className="px-4 py-3"><div className="h-4 bg-gray-200 rounded" /></td>
                     ))}
                   </tr>
                 ))
               ) : data.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-12 text-gray-400 text-sm">Tidak ada data iuran</td>
+                  <td colSpan={8} className="text-center py-12 text-gray-400 text-sm">Tidak ada data iuran</td>
                 </tr>
               ) : (
                 data.map((item, idx) => (
@@ -228,6 +265,9 @@ const ManajemenIuran: React.FC = () => {
                     <td className="px-4 py-3 text-sm text-gray-600">{startItem + idx}</td>
                     <td className="px-4 py-3 text-sm font-medium text-gray-800">{item.namaWarga}</td>
                     <td className="px-4 py-3 text-sm text-gray-600">{item.rtRw}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">
+                      <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs font-medium">{item.kategori}</span>
+                    </td>
                     <td className="px-4 py-3 text-sm text-gray-600">{item.bulan}</td>
                     <td className="px-4 py-3 text-sm text-gray-600">
                       {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(item.nominal)}
@@ -279,7 +319,7 @@ const ManajemenIuran: React.FC = () => {
       </div>
 
       {/* Update Iuran Modal */}
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Update Informasi Iuran" maxWidth="sm">
+      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Tambahkan Iuran" maxWidth="sm">
         <form onSubmit={handleUpdateIuran} className="space-y-4">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Nominal Iuran (Rp)</label>
@@ -299,17 +339,90 @@ const ManajemenIuran: React.FC = () => {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Keterangan</label>
-            <textarea
-              className="input-field h-24 resize-none"
-              placeholder="Keterangan tambahan..."
-              value={iuranForm.keterangan}
-              onChange={(e) => setIuranForm({ ...iuranForm, keterangan: e.target.value })}
-            />
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Kategori Iuran</label>
+            <select
+              className="input-field"
+              value={iuranForm.kategori}
+              onChange={(e) => setIuranForm({ ...iuranForm, kategori: e.target.value })}
+            >
+              <option value="">Pilih Kategori</option>
+              {kategoriOptions.map((kategori, index) => (
+                <option key={index} value={kategori}>{kategori}</option>
+              ))}
+            </select>
           </div>
-          <div className="flex gap-3">
+
+          {/* Divider */}
+          <div className="border-t border-gray-100 pt-3">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Sasaran Wilayah</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">RT</label>
+                <select
+                  className="input-field"
+                  value={iuranForm.rt}
+                  onChange={(e) => setIuranForm({ ...iuranForm, rt: e.target.value })}
+                >
+                  {RT_OPTIONS.map((rt) => (
+                    <option key={rt} value={rt}>
+                      {rt === 'Semua' ? 'Semua RT' : `RT ${rt}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">RW</label>
+                <select
+                  className="input-field"
+                  value={iuranForm.rw}
+                  onChange={(e) => setIuranForm({ ...iuranForm, rw: e.target.value })}
+                >
+                  {RW_OPTIONS.map((rw) => (
+                    <option key={rw} value={rw}>
+                      {rw === 'Semua' ? 'Semua RW' : `RW ${rw}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            {(iuranForm.rt !== 'Semua' || iuranForm.rw !== 'Semua') && (
+              <p className="mt-2 text-xs text-blue-600 bg-blue-50 rounded-lg px-3 py-2">
+                Iuran akan disebarkan ke{' '}
+                <span className="font-semibold">
+                  {iuranForm.rt !== 'Semua' && iuranForm.rw !== 'Semua'
+                    ? `RT ${iuranForm.rt} / RW ${iuranForm.rw}`
+                    : iuranForm.rt !== 'Semua'
+                      ? `RT ${iuranForm.rt} (semua RW)`
+                      : `RW ${iuranForm.rw} (semua RT)`}
+                </span>
+              </p>
+            )}
+          </div>
+
+          <div className="flex gap-3 pt-1">
             <Button variant="secondary" className="flex-1" type="button" onClick={() => setModalOpen(false)}>Batal</Button>
             <Button variant="primary" className="flex-1" type="submit" loading={formLoading}>Simpan</Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Kategori Modal */}
+      <Modal isOpen={kategoriModalOpen} onClose={() => setKategoriModalOpen(false)} title="Tambah Kategori Iuran Baru" maxWidth="sm">
+        <form onSubmit={handleAddKategori} className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Kategori</label>
+            <input
+              required
+              type="text"
+              className="input-field"
+              placeholder="Contoh: Iuran Kebersihan"
+              value={newKategori}
+              onChange={(e) => setNewKategori(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-3 mt-6">
+            <Button variant="secondary" className="flex-1" type="button" onClick={() => setKategoriModalOpen(false)}>Batal</Button>
+            <Button variant="primary" className="flex-1" type="submit">Tambah</Button>
           </div>
         </form>
       </Modal>
