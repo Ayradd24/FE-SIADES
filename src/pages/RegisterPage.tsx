@@ -21,16 +21,18 @@ import logoDesaImg from '../assets/logo-desa.png';
 
 interface RegisterForm {
   namaLengkap: string;
-  email: string;
-  nomorWA: string;
+  NIK: string;
+  nomorkk: string;
+  username: string;
   password: string;
   konfirmasiPassword: string;
 }
 
 interface RegisterErrors {
   namaLengkap?: string;
-  email?: string;
-  nomorWA?: string;
+  NIK?: string;
+  nomorkk?: string;
+  username?: string;
   password?: string;
   konfirmasiPassword?: string;
   general?: string;
@@ -40,8 +42,9 @@ const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const [form, setForm] = useState<RegisterForm>({
     namaLengkap: '',
-    email: '',
-    nomorWA: '',
+    NIK: '',
+    nomorkk: '',
+    username: '',
     password: '',
     konfirmasiPassword: '',
   });
@@ -53,15 +56,18 @@ const RegisterPage: React.FC = () => {
   const validate = (): boolean => {
     const newErrors: RegisterErrors = {};
     if (!form.namaLengkap.trim()) newErrors.namaLengkap = 'Nama lengkap tidak boleh kosong';
-    if (!form.email) {
-      newErrors.email = 'Email tidak boleh kosong';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      newErrors.email = 'Format email tidak valid';
+    if (!form.NIK) {
+      newErrors.NIK = 'NIK tidak boleh kosong';
+    } else if (!/^\d{16}$/.test(form.NIK)) {
+      newErrors.NIK = 'Format NIK tidak valid (16 digit angka)';
     }
-    if (!form.nomorWA) {
-      newErrors.nomorWA = 'Nomor WhatsApp tidak boleh kosong';
-    } else if (!/^(08|\+62)[0-9]{8,11}$/.test(form.nomorWA)) {
-      newErrors.nomorWA = 'Format nomor WA tidak valid (contoh: 08xxxxxxxxx)';
+    if (!form.nomorkk) {
+      newErrors.nomorkk = 'Nomor Kartu Keluarga tidak boleh kosong';
+    } else if (!/^\d{16}$/.test(form.nomorkk)) {
+      newErrors.nomorkk = 'Format nomor KK tidak valid (16 digit angka)';
+    }
+    if (!form.username) {
+      newErrors.username = 'Username tidak boleh kosong';
     }
     if (!form.password) {
       newErrors.password = 'Password tidak boleh kosong';
@@ -95,8 +101,9 @@ const RegisterPage: React.FC = () => {
     try {
       await api.post('/auth/register', {
         namaLengkap: form.namaLengkap,
-        email: form.email,
-        nomorWA: form.nomorWA,
+        NIK: form.NIK,
+        nomorkk: form.nomorkk,
+        username: form.username,
         password: form.password,
         konfirmasiPassword: form.konfirmasiPassword,
       });
@@ -105,7 +112,7 @@ const RegisterPage: React.FC = () => {
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string }; status?: number } };
       if (err.response?.status === 409) {
-        setErrors({ general: 'Email sudah terdaftar. Silakan gunakan email lain.' });
+        setErrors({ general: 'NIK sudah terdaftar. Silakan gunakan NIK lain.' });
       } else if (err.response?.data?.message) {
         setErrors({ general: err.response.data.message });
       } else {
@@ -215,40 +222,58 @@ const RegisterPage: React.FC = () => {
               {errors.namaLengkap && <p className="mt-1 text-xs text-red-500">{errors.namaLengkap}</p>}
             </div>
 
-            {/* Email */}
+            {/* NIK */}
             <div className="mb-4">
-              <label htmlFor="email" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
-                Email
+              <label htmlFor="NIK" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
+                NIK
               </label>
               <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                placeholder="email@contoh.com"
-                value={form.email}
+                id="NIK"
+                name="NIK"
+                type="text"
+                autoComplete="NIK"
+                placeholder="16 digit NIK"
+                value={form.NIK}
                 onChange={handleChange}
-                className={`input-field ${errors.email ? 'border-red-400 focus:ring-red-300' : ''}`}
+                className={`input-field ${errors.NIK ? 'border-red-400 focus:ring-red-300' : ''}`}
               />
-              {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
+              {errors.NIK && <p className="mt-1 text-xs text-red-500">{errors.NIK}</p>}
             </div>
 
-            {/* Nomor WA */}
+            {/* Nomor Kartu Keluarga */}
             <div className="mb-4">
-              <label htmlFor="nomorWA" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
-                Nomor WhatsApp
+              <label htmlFor="nomorkk" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
+                Nomor Kartu Keluarga
               </label>
               <input
-                id="nomorWA"
-                name="nomorWA"
+                id="nomorkk"
+                name="nomorkk"
                 type="tel"
                 autoComplete="tel"
-                placeholder="08xxxxxxxxx"
-                value={form.nomorWA}
+                placeholder="16 digit Nomor Kartu Keluarga"
+                value={form.nomorkk}
                 onChange={handleChange}
-                className={`input-field ${errors.nomorWA ? 'border-red-400 focus:ring-red-300' : ''}`}
+                className={`input-field ${errors.nomorkk ? 'border-red-400 focus:ring-red-300' : ''}`}
               />
-              {errors.nomorWA && <p className="mt-1 text-xs text-red-500">{errors.nomorWA}</p>}
+              {errors.nomorkk && <p className="mt-1 text-xs text-red-500">{errors.nomorkk}</p>}
+            </div>
+
+              {/* Username */}
+            <div className="mb-4">
+              <label htmlFor="username" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
+                Username
+              </label>
+              <input
+                id="username"
+                name="username"
+                type="text"
+                autoComplete="username"
+                placeholder="Masukan username"
+                value={form.username}
+                onChange={handleChange}
+                className={`input-field ${errors.username ? 'border-red-400 focus:ring-red-300' : ''}`}
+              />
+              {errors.username && <p className="mt-1 text-xs text-red-500">{errors.username}</p>}
             </div>
 
             <PasswordInput

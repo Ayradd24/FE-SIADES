@@ -8,7 +8,8 @@ const ProfilSaya: React.FC = () => {
   const [form, setForm] = useState({
     namaLengkap: localStorage.getItem('siades_name') || 'Warga Desa',
     nik: '3201234567890001',
-    noWa: '081234567890',
+    nomorkk: '3201234567890001',
+    username: 'Username',
     alamat: 'Dusun Karangasem RT 01 RW 02',
   });
 
@@ -69,11 +70,24 @@ const ProfilSaya: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-[#1e3a5f] mb-1">Nomor WhatsApp</label>
+            <label className="block text-sm font-semibold text-[#1e3a5f] mb-1">Nomor Kartu Keluarga</label>
             <input
               type="text"
-              name="noWa"
-              value={form.noWa}
+              name="nomorkk"
+              value={form.nomorkk}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-500 rounded-xl outline-none cursor-not-allowed"
+            />
+            <p className="text-xs text-gray-400 mt-1">Nomor Kartu Keluarga tidak dapat diubah secara mandiri. Hubungi admin desa jika ada kesalahan.</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-[#1e3a5f] mb-1">Username</label>
+            <input
+              type="text"
+              name="username"
+              value={form.username}
               onChange={handleChange}
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all"

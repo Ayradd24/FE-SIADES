@@ -354,7 +354,7 @@ const ManajemenIuran: React.FC = () => {
 
           {/* Divider */}
           <div className="border-t border-gray-100 pt-3">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Sasaran Wilayah</p>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">RT/RW</p>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">RT</label>

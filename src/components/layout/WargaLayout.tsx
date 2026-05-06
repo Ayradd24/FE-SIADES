@@ -117,7 +117,7 @@ const WargaLayout: React.FC = () => {
             className="w-full flex items-center justify-center gap-2 bg-blue-400 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
           >
             <ArrowLeftIcon />
-            Portal Desa
+            Beranda Desa
           </button>
         </div>
       </aside>

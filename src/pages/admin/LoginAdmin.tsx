@@ -23,27 +23,27 @@ import logoDesaImg from '../../assets/logo-desa.png';
  */
 
 interface LoginForm {
-  NIK: string;
+  Username: string;
   password: string;
 }
 
 interface LoginErrors {
-  NIK?: string;
+  Username?: string;
   password?: string;
   general?: string;
 }
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const [form, setForm] = useState<LoginForm>({ NIK: '', password: '' });
+  const [form, setForm] = useState<LoginForm>({ Username: '', password: '' });
   const [errors, setErrors] = useState<LoginErrors>({});
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const validate = (): boolean => {
     const newErrors: LoginErrors = {};
-    if (!form.NIK) {
-      newErrors.NIK = 'NIK tidak boleh kosong';
+    if (!form.Username) {
+      newErrors.Username = 'Username tidak boleh kosong';
     }
     if (!form.password) {
       newErrors.password = 'Password tidak boleh kosong';
@@ -76,13 +76,13 @@ const LoginPage: React.FC = () => {
       // --- MOCK API KARENA BACKEND BELUM SIAP ---
       // Simulasi delay jaringan 1 detik
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      
+
       let role = 'user';
       let name = 'Warga Karangasem';
       const token = 'mock_jwt_token_12345';
 
-      // Simulasi logika backend: jika NIK berisi kata 'admin', masuk ke dashboard admin
-      if (form.NIK.toLowerCase() === 'admin') {
+      // Simulasi logika backend: jika Username berisi kata 'admin', masuk ke dashboard admin
+      if (form.Username.toLowerCase() === 'admin') {
         role = 'admin';
         name = 'Admin Desa';
       }
@@ -148,23 +148,23 @@ const LoginPage: React.FC = () => {
           )}
 
           <form onSubmit={handleSubmit} noValidate>
-            {/* NIK */}
+            {/* Username */}
             <div className="mb-5">
-              <label htmlFor="NIK" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
-                NIK
+              <label htmlFor="Username" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
+                Username
               </label>
               <input
-                id="NIK"
-                name="NIK"
+                id="Username"
+                name="Username"
                 type="text"
-                autoComplete="NIK"
-                placeholder="masukkan NIK anda"
-                value={form.NIK}
+                autoComplete="Username"
+                placeholder="masukkan Username anda"
+                value={form.Username}
                 onChange={handleChange}
-                className={`input-field ${errors.NIK ? 'border-red-400 focus:ring-red-300' : ''}`}
+                className={`input-field ${errors.Username ? 'border-red-400 focus:ring-red-300' : ''}`}
               />
-              {errors.NIK && (
-                <p className="mt-1 text-xs text-red-500">{errors.NIK}</p>
+              {errors.Username && (
+                <p className="mt-1 text-xs text-red-500">{errors.Username}</p>
               )}
             </div>
 
