@@ -3,22 +3,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import api from '../lib/api';
 import logoDesaImg from '../assets/logo-desa.png';
 
-/**
- * HALAMAN REGISTER (Buat Akun) — untuk warga desa
- *
- * API Endpoint: POST /auth/register
- * Request body : {
- *   namaLengkap: string,
- *   email: string,
- *   nomorWA: string,
- *   password: string,
- *   konfirmasiPassword: string
- * }
- * Response: { message: string, token?: string, role?: string }
- *
- * Setelah register berhasil → redirect ke /login
- */
-
 interface RegisterForm {
   namaLengkap: string;
   NIK: string;
@@ -50,6 +34,7 @@ interface PasswordInputProps {
   placeholder?: string;
 }
 
+// ✅ Komponen di LUAR RegisterPage agar tidak di-recreate setiap render
 const PasswordInput = ({
   id,
   label,
@@ -62,7 +47,9 @@ const PasswordInput = ({
   placeholder = '••••••••',
 }: PasswordInputProps) => (
   <div className="mb-4">
-    <label htmlFor={id} className="block text-sm font-semibold text-[#1e3a5f] mb-2">{label}</label>
+    <label htmlFor={id} className="block text-sm font-semibold text-[#1e3a5f] mb-2">
+      {label}
+    </label>
     <div className="relative">
       <input
         id={id}
@@ -196,7 +183,6 @@ const RegisterPage: React.FC = () => {
   };
 
 
-
   return (
     <div className="min-h-screen bg-[#e8edf5] flex flex-col">
       {/* Header */}
@@ -259,7 +245,7 @@ const RegisterPage: React.FC = () => {
                 id="NIK"
                 name="NIK"
                 type="text"
-                autoComplete="NIK"
+                autoComplete="off"
                 placeholder="16 digit NIK"
                 value={form.NIK}
                 onChange={handleChange}
@@ -277,7 +263,7 @@ const RegisterPage: React.FC = () => {
                 id="nomorkk"
                 name="nomorkk"
                 type="tel"
-                autoComplete="tel"
+                autoComplete="off"
                 placeholder="16 digit Nomor Kartu Keluarga"
                 value={form.nomorkk}
                 onChange={handleChange}
@@ -286,7 +272,7 @@ const RegisterPage: React.FC = () => {
               {errors.nomorkk && <p className="mt-1 text-xs text-red-500">{errors.nomorkk}</p>}
             </div>
 
-              {/* Username */}
+            {/* Username */}
             <div className="mb-4">
               <label htmlFor="username" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
                 Username
