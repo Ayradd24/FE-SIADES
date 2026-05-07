@@ -11,9 +11,9 @@ interface DashboardStats {
 
 interface PermohonanSurat {
   id: string | number;
-  namaPemohon: string;
-  jenisSurat: string;
-  tanggal: string;
+  nama_pemohon: string;
+  jenis_surat: string;
+  created_at: string;
   status: 'PENDING' | 'DISETUJUI' | 'DITOLAK';
 }
 
@@ -112,9 +112,9 @@ const Dashboard: React.FC = () => {
           totalKas: 15500000,
         });
         setRecentSurat([
-          { id: 1, namaPemohon: 'Herman Sumanto', jenisSurat: 'Surat Domisili', tanggal: '2025-10-02', status: 'PENDING' },
-          { id: 2, namaPemohon: 'Adit Santoso', jenisSurat: 'Pengantar SKCK', tanggal: '2025-10-07', status: 'PENDING' },
-          { id: 3, namaPemohon: 'Denis Kurnia', jenisSurat: 'Pengantar SKCK', tanggal: '2025-10-08', status: 'PENDING' },
+          { id: 1, nama_pemohon: 'Herman Sumanto', jenis_surat: 'Surat Domisili', created_at: '2025-10-02', status: 'PENDING' },
+          { id: 2, nama_pemohon: 'Adit Santoso', jenis_surat: 'Pengantar SKCK', created_at: '2025-10-07', status: 'PENDING' },
+          { id: 3, nama_pemohon: 'Denis Kurnia', jenis_surat: 'Pengantar SKCK', created_at: '2025-10-08', status: 'PENDING' },
         ]);
         setError(null);
       } finally {
@@ -219,9 +219,9 @@ const Dashboard: React.FC = () => {
                 {recentSurat.map((surat, idx) => (
                   <tr key={surat.id} className="border-b border-gray-100 hover:bg-blue-50 transition-colors">
                     <td className="px-6 py-3 text-sm text-gray-600">{idx + 1}</td>
-                    <td className="px-6 py-3 text-sm font-medium text-gray-800">{surat.namaPemohon}</td>
-                    <td className="px-6 py-3 text-sm text-gray-600">{surat.jenisSurat}</td>
-                    <td className="px-6 py-3 text-sm text-gray-600">{formatDate(surat.tanggal)}</td>
+                    <td className="px-6 py-3 text-sm font-medium text-gray-800">{surat.nama_pemohon}</td>
+                    <td className="px-6 py-3 text-sm text-gray-600">{surat.jenis_surat}</td>
+                    <td className="px-6 py-3 text-sm text-gray-600">{formatDate(surat.created_at)}</td>
                     <td className="px-6 py-3">{statusBadge(surat.status)}</td>
                   </tr>
                 ))}

@@ -1,94 +1,55 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
+import api from '../../lib/api';
 import Button from '../../components/ui/Button';
 import { useToast } from '../../hooks/useToast';
 
 const PengajuanSurat: React.FC = () => {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
 
   const [form, setForm] = useState({
     jenisSurat: 'Surat Keterangan Usaha',
     keperluan: '',
   });
-
-  // --- Handlers for Canvas Signature ---
-  const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
-    setIsDrawing(true);
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Normalize coordinates for both mouse and touch
-    let clientX, clientY;
-    if ('touches' in e) {
-      clientX = e.touches[0].clientX;
-      clientY = e.touches[0].clientY;
-    } else {
-      clientX = (e as React.MouseEvent).clientX;
-      clientY = (e as React.MouseEvent).clientY;
-    }
-
-    const rect = canvas.getBoundingClientRect();
-    ctx.beginPath();
-    ctx.moveTo(clientX - rect.left, clientY - rect.top);
-  };
-
-  const draw = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!isDrawing) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let clientX, clientY;
-    if ('touches' in e) {
-      clientX = e.touches[0].clientX;
-      clientY = e.touches[0].clientY;
-    } else {
-      clientX = (e as React.MouseEvent).clientX;
-      clientY = (e as React.MouseEvent).clientY;
-    }
-
-    const rect = canvas.getBoundingClientRect();
-    ctx.lineTo(clientX - rect.left, clientY - rect.top);
-    ctx.stroke();
-  };
-
-  const stopDrawing = () => {
-    setIsDrawing(false);
-  };
-
-  const clearSignature = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-  };
+  const [file, setFile] = useState<File | null>(null);
 
   // --- Form Handlers ---
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.keperluan) {
       showToast('Keperluan surat harus diisi', 'error');
       return;
     }
+    if (!file) {
+      showToast('Dokumen pendukung harus diunggah', 'error');
+      return;
+    }
 
     setLoading(true);
-    // Simulasi API call
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const formData = new FormData();
+      formData.append('jenis_surat', form.jenisSurat);
+      formData.append('keperluan', form.keperluan);
+      formData.append('file', file);
+
+      await api.post('/warga/pengajuan-surat', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
       showToast('Pengajuan Surat berhasil dikirim', 'success');
       setForm({ jenisSurat: 'Surat Keterangan Usaha', keperluan: '' });
-      clearSignature();
-    }, 1500);
+      setFile(null);
+    } catch (error) {
+      console.error('Submission failed:', error);
+      const err = error as { response?: { data?: { message?: string } } };
+      showToast(err.response?.data?.message || 'Gagal mengirim pengajuan', 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -128,6 +89,8 @@ const PengajuanSurat: React.FC = () => {
             <label className="block text-sm font-semibold text-[#1e3a5f] mb-2">Upload Dokumen Pendukung (KTP/KK)</label>
             <input
               type="file"
+              accept=".pdf"
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
               className="block w-full text-sm text-gray-500
                 file:mr-4 file:py-2 file:px-4
                 file:rounded-xl file:border-0
@@ -135,6 +98,7 @@ const PengajuanSurat: React.FC = () => {
                 file:bg-blue-50 file:text-blue-700
                 hover:file:bg-blue-100 transition-all cursor-pointer"
             />
+            {file && <p className="text-xs text-green-600 mt-1 font-medium italic">File terpilih: {file.name}</p>}
           </div>
 
 

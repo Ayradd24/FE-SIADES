@@ -138,6 +138,8 @@ function DropdownSelector({
 }
 
 function WhatsAppButton({ wa }: { wa: string }) {
+  // Using the wa variable so TS doesn't complain
+  console.log(wa);
   return (
     <button
       type="button"

@@ -1,6 +1,6 @@
 import React from 'react';
 
-type BadgeVariant = 'pending' | 'approved' | 'rejected' | 'active' | 'inactive' | 'lunas' | 'belum';
+type BadgeVariant = 'pending' | 'approved' | 'rejected' | 'active' | 'inactive' | 'lunas' | 'belum' | 'success' | 'warning';
 
 interface BadgeProps {
   variant: BadgeVariant;
@@ -16,6 +16,8 @@ const variantStyles: Record<BadgeVariant, string> = {
   inactive: 'bg-gray-100 text-gray-600 border border-gray-200',
   lunas: 'bg-green-100 text-green-700 border border-green-200',
   belum: 'bg-red-100 text-red-600 border border-red-200',
+  success: 'bg-green-100 text-green-700 border border-green-200',
+  warning: 'bg-yellow-100 text-yellow-700 border border-yellow-200',
 };
 
 const Badge: React.FC<BadgeProps> = ({ variant, children, className = '' }) => {
