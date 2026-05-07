@@ -6,6 +6,7 @@ import ToastContainer from '../../components/ui/Toast';
 import { useToast } from '../../hooks/useToast';
 import PdfPreviewModal from '../../components/modals/PdfPreviewModal';
 import SignatureModal from '../../components/modals/SignatureModal';
+import { useAuth } from '../../hooks/useAuth';
 import { PDFDocument } from 'pdf-lib';
 
 type StatusSurat = 'PENDING' | 'DISETUJUI' | 'DITOLAK';
@@ -33,6 +34,8 @@ const ITEMS_PER_PAGE = 10;
 
 const PersetujuanSurat: React.FC = () => {
   const { toasts, showToast, removeToast } = useToast();
+  const { role } = useAuth();
+  const isSuperAdmin = role === 'super-admin';
   const [data, setData] = useState<PermohonanSurat[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<'' | StatusSurat>('');
@@ -155,7 +158,7 @@ const PersetujuanSurat: React.FC = () => {
 
       // 5. Save and Upload
       const pdfBytes = await pdfDoc.save();
-      const signedBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const signedBlob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
 
       await handleAction(selectedSurat.id, 'approve', signedBlob);
       
@@ -245,14 +248,16 @@ const PersetujuanSurat: React.FC = () => {
                       <div className="flex items-center gap-2">
                         {surat.status === 'PENDING' ? (
                           <>
-                            <Button
-                              variant="danger"
-                              size="sm"
-                              onClick={() => handleAction(surat.id, 'reject')}
-                              loading={actionLoading === surat.id}
-                            >
-                              ✕ Tolak
-                            </Button>
+                            {isSuperAdmin && (
+                              <Button
+                                variant="danger"
+                                size="sm"
+                                onClick={() => handleAction(surat.id, 'reject')}
+                                loading={actionLoading === surat.id}
+                              >
+                                ✕ Tolak
+                              </Button>
+                            )}
                             <button 
                                 onClick={() => {
                                   setSelectedSurat(surat);
@@ -262,17 +267,19 @@ const PersetujuanSurat: React.FC = () => {
                               >
                                 Detail
                               </button>
-                              <Button
-                                variant="success"
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedSurat(surat);
-                                  setIsSignOpen(true);
-                                }}
-                                loading={actionLoading === surat.id}
-                              >
-                                ✓ Setuju
-                              </Button>
+                              {isSuperAdmin && (
+                                <Button
+                                  variant="success"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedSurat(surat);
+                                    setIsSignOpen(true);
+                                  }}
+                                  loading={actionLoading === surat.id}
+                                >
+                                  ✓ Setuju
+                                </Button>
+                              )}
                           </>
                         ) : (
                           <>{getStatusBadge(surat.status)}</>

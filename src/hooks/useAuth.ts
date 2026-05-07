@@ -17,7 +17,7 @@ export const useAuth = (): AuthState => {
   const role = localStorage.getItem('siades_role');
 
   const isAuthenticated = !!token;
-  const isAdmin = role === 'super-admin' || role === 'sekretaris' || role === 'bendahara';
+  const isAdmin = role === 'super-admin' || role === 'admin';
 
   const logout = useCallback(async () => {
     try {
