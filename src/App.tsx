@@ -22,6 +22,9 @@ import KatalogJasaWarga from "./pages/warga/KatalogJasaWarga";
 import IuranSaya from "./pages/warga/IuranSaya";
 import ProfilSaya from "./pages/warga/ProfilSaya";
 
+// Import AuthProvider for token validation
+import AuthProvider from "./components/AuthProvider";
+
 const previewJasa = [
   {
     nama: "Bambang",
@@ -209,7 +212,7 @@ function LandingPage() {
   );
 }
 
-function App() {
+function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
@@ -248,6 +251,14 @@ function App() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
   );
 }
 

@@ -76,7 +76,7 @@ const DataWarga: React.FC = () => {
   const fetchWarga = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get('/admin/warga', {
+      const res = await api.get('/admin/users', {
         params: { page, limit: ITEMS_PER_PAGE, search, rt: filterRT, rw: filterRW },
       });
       setData(res.data?.data || res.data);
@@ -125,10 +125,10 @@ const DataWarga: React.FC = () => {
     setFormLoading(true);
     try {
       if (editData) {
-        await api.put(`/admin/warga/${editData.id}`, form);
+        await api.put(`/admin/users/${editData.id}`, form);
         showToast('Data warga berhasil diperbarui', 'success');
       } else {
-        await api.post('/admin/warga', form);
+        await api.post('/admin/users', form);
         showToast('Warga baru berhasil ditambahkan', 'success');
       }
       setModalOpen(false);
@@ -144,7 +144,7 @@ const DataWarga: React.FC = () => {
     if (!deleteId) return;
     setDeleteLoading(true);
     try {
-      await api.delete(`/admin/warga/${deleteId}`);
+      await api.delete(`/admin/users/${deleteId}`);
       showToast('Data warga berhasil dihapus', 'success');
       setConfirmOpen(false);
       fetchWarga();
@@ -254,7 +254,7 @@ const DataWarga: React.FC = () => {
           <table className="w-full">
             <thead>
               <tr className="bg-blue-400 text-white">
-                {['No', 'Nama Lengkap', 'Nomor WA', 'L/P', 'Alamat', 'RT', 'RW', 'Aksi'].map((h) => (
+                {['No', 'Nama Lengkap', 'Nomor WA', 'L/P', 'Alamat', 'RT/RW', 'Aksi'].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-sm font-semibold whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -263,7 +263,7 @@ const DataWarga: React.FC = () => {
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} className="border-b border-gray-100 animate-pulse">
-                    {Array.from({ length: 8 }).map((__, j) => (
+                    {Array.from({ length: 7 }).map((__, j) => (
                       <td key={j} className="px-4 py-3">
                         <div className="h-4 bg-gray-200 rounded w-full" />
                       </td>
@@ -272,7 +272,7 @@ const DataWarga: React.FC = () => {
                 ))
               ) : data.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-12 text-gray-400 text-sm">
+                  <td colSpan={7} className="text-center py-12 text-gray-400 text-sm">
                     Tidak ada data warga ditemukan
                   </td>
                 </tr>
@@ -288,8 +288,9 @@ const DataWarga: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">{warga.alamat}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{warga.rt}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{warga.rw}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">
+                      {warga.rt || warga.rw ? `RT ${warga.rt || '-'} / RW ${warga.rw || '-'}` : '-'}
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         {/* View */}
@@ -362,6 +363,32 @@ const DataWarga: React.FC = () => {
               <label className="block text-sm font-semibold text-gray-700 mb-1">Nomor WA *</label>
               <input required className="input-field" placeholder="08xxxxxxxxx" value={form.nomorWA} onChange={(e) => setForm({ ...form, nomorWA: e.target.value })} />
             </div>
+            
+            <div className="col-span-2 mt-4">
+              <div className="border-b border-gray-200 pb-2 mb-4">
+                <h3 className="text-lg font-semibold text-gray-800">Data Demografi</h3>
+              </div>
+            </div>
+
+            <div className="col-span-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Alamat</label>
+              <textarea className="input-field" placeholder="Alamat lengkap" rows={3} value={form.alamat} onChange={(e) => setForm({ ...form, alamat: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">RT</label>
+              <input className="input-field" placeholder="001" maxLength={3} value={form.rt} onChange={(e) => setForm({ ...form, rt: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">RW</label>
+              <input className="input-field" placeholder="001" maxLength={3} value={form.rw} onChange={(e) => setForm({ ...form, rw: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Jenis Kelamin</label>
+              <select className="input-field" value={form.jenisKelamin} onChange={(e) => setForm({ ...form, jenisKelamin: e.target.value as 'L' | 'P' })}>
+                <option value="L">Laki-laki</option>
+                <option value="P">Perempuan</option>
+              </select>
+            </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Tempat Lahir</label>
               <input className="input-field" placeholder="Kota kelahiran" value={form.tempatLahir} onChange={(e) => setForm({ ...form, tempatLahir: e.target.value })} />
@@ -370,28 +397,9 @@ const DataWarga: React.FC = () => {
               <label className="block text-sm font-semibold text-gray-700 mb-1">Tanggal Lahir</label>
               <input type="date" className="input-field" value={form.tanggalLahir} onChange={(e) => setForm({ ...form, tanggalLahir: e.target.value })} />
             </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Jenis Kelamin *</label>
-              <select required className="input-field" value={form.jenisKelamin} onChange={(e) => setForm({ ...form, jenisKelamin: e.target.value as 'L' | 'P' })}>
-                <option value="L">Laki-laki</option>
-                <option value="P">Perempuan</option>
-              </select>
-            </div>
-            <div>
+            <div className="col-span-2">
               <label className="block text-sm font-semibold text-gray-700 mb-1">Email</label>
               <input type="email" className="input-field" placeholder="email@contoh.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-            </div>
-            <div className="col-span-2">
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Alamat *</label>
-              <input required className="input-field" placeholder="Alamat lengkap" value={form.alamat} onChange={(e) => setForm({ ...form, alamat: e.target.value })} />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">RT *</label>
-              <input required className="input-field" placeholder="001" maxLength={3} value={form.rt} onChange={(e) => setForm({ ...form, rt: e.target.value })} />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">RW *</label>
-              <input required className="input-field" placeholder="001" maxLength={3} value={form.rw} onChange={(e) => setForm({ ...form, rw: e.target.value })} />
             </div>
           </div>
           <div className="flex gap-3 pt-2">
