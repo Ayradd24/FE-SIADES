@@ -89,6 +89,7 @@ const DataWarga: React.FC = () => {
     }
   }, [page, search, filterRT, filterRW]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchWarga(); }, [fetchWarga]);
 
   const openCreate = () => {

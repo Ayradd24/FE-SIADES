@@ -22,28 +22,30 @@ interface RegisterErrors {
   general?: string;
 }
 
+interface PasswordInputProps {
+  id: string;
+  label: string;
+  name: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  show: boolean;
+  onToggle: () => void;
+  error?: string;
+  placeholder?: string;
+}
+
 // ✅ Komponen di LUAR RegisterPage agar tidak di-recreate setiap render
 const PasswordInput = ({
   id,
   label,
   name,
+  value,
+  onChange,
   show,
   onToggle,
   error,
   placeholder = '••••••••',
-  value,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  name: string;
-  show: boolean;
-  onToggle: () => void;
-  error?: string;
-  placeholder?: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}) => (
+}: PasswordInputProps) => (
   <div className="mb-4">
     <label htmlFor={id} className="block text-sm font-semibold text-[#1e3a5f] mb-2">
       {label}
@@ -58,11 +60,7 @@ const PasswordInput = ({
         onChange={onChange}
         className={`input-field pr-12 ${error ? 'border-red-400 focus:ring-red-300' : ''}`}
       />
-      <button
-        type="button"
-        onClick={onToggle}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-      >
+      <button type="button" onClick={onToggle} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
         {show ? (
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
@@ -150,8 +148,29 @@ const RegisterPage: React.FC = () => {
 
       navigate('/login', { state: { successMessage: 'Akun berhasil dibuat! Silakan masuk.' } });
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string }; status?: number } };
-      if (err.response?.status === 409) {
+      const err = error as { 
+        response?: { 
+          data?: { 
+            message?: string;
+            errors?: Record<string, string[]>;
+          }; 
+          status?: number;
+        } 
+      };
+
+      if (err.response?.status === 422 && err.response?.data?.errors) {
+        const backendErrors = err.response.data.errors;
+        const newErrors: RegisterErrors = {};
+        
+        if (backendErrors.name) newErrors.namaLengkap = backendErrors.name[0];
+        if (backendErrors.nik) newErrors.NIK = backendErrors.nik[0];
+        if (backendErrors.no_kk) newErrors.nomorkk = backendErrors.no_kk[0];
+        if (backendErrors.username) newErrors.username = backendErrors.username[0];
+        if (backendErrors.password) newErrors.password = backendErrors.password[0];
+        
+        setErrors(newErrors);
+        setErrors((prev) => ({ ...prev, general: 'Data tidak valid. Silakan periksa kembali inputan Anda.' }));
+      } else if (err.response?.status === 409) {
         setErrors({ general: 'NIK sudah terdaftar. Silakan gunakan NIK lain.' });
       } else if (err.response?.data?.message) {
         setErrors({ general: err.response.data.message });
@@ -162,6 +181,7 @@ const RegisterPage: React.FC = () => {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-[#e8edf5] flex flex-col">
@@ -274,23 +294,23 @@ const RegisterPage: React.FC = () => {
               id="password"
               label="Password"
               name="password"
+              value={form.password}
+              onChange={handleChange}
               show={showPassword}
               onToggle={() => setShowPassword((v) => !v)}
               error={errors.password}
-              value={form.password}
-              onChange={handleChange}
             />
 
             <PasswordInput
               id="konfirmasiPassword"
               label="Konfirmasi Password"
               name="konfirmasiPassword"
+              value={form.konfirmasiPassword}
+              onChange={handleChange}
               show={showKonfirmasi}
               onToggle={() => setShowKonfirmasi((v) => !v)}
               error={errors.konfirmasiPassword}
               placeholder="Ulangi password"
-              value={form.konfirmasiPassword}
-              onChange={handleChange}
             />
 
             <button

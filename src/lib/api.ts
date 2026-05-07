@@ -1,14 +1,19 @@
 import axios from 'axios';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+export const BASE_URL = import.meta.env.VITE_API_URL || '/api';
+
+console.log('API Base URL:', BASE_URL);
 
 const api = axios.create({
   baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
   },
-  timeout: 10000,
+  withCredentials: true, // Useful for some Sanctum setups
+  timeout: 15000,
 });
+
 
 // Request interceptor — inject token
 api.interceptors.request.use(

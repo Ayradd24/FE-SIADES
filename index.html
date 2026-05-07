@@ -5,6 +5,40 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>fe-siades</title>
+    <script>
+      window.global = window;
+      window.process = { 
+        env: { NODE_ENV: 'development' }, 
+        browser: true,
+        version: '',
+        nextTick: (fn) => setTimeout(fn, 0)
+      };
+      window.require = function(name) {
+        if (name === 'prop-types' || name === 'PropTypes') {
+          const pt = { 
+            any: () => {}, array: () => {}, bool: () => {}, func: () => {}, 
+            number: () => {}, object: () => {}, string: () => {}, node: () => {}, 
+            element: () => {}, oneOf: () => {}, oneOfType: () => {}, 
+            arrayOf: () => {}, objectOf: () => {}, shape: () => {}, exact: () => {},
+            checkPropTypes: () => {}
+          };
+          pt.isRequired = pt;
+          // Make it recursive for things like PropTypes.shape(...).isRequired
+          const createMock = () => {
+            const mock = () => {};
+            mock.isRequired = mock;
+            return mock;
+          };
+          ['any', 'array', 'bool', 'func', 'number', 'object', 'string', 'node', 'element', 'oneOf', 'oneOfType', 'arrayOf', 'objectOf', 'shape', 'exact'].forEach(key => {
+            pt[key] = createMock();
+          });
+          return pt;
+        }
+        return {};
+      };
+      // For some old libraries that check for 'exports' or 'module'
+      if (typeof window.exports === 'undefined') window.exports = {};
+    </script>
   </head>
   <body>
     <div id="root"></div>

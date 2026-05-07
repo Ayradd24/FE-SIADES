@@ -60,6 +60,7 @@ const ManajemenKatalog: React.FC = () => {
     }
   }, [page, search, filterRT, filterRW]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const openDelete = (id: string | number) => {
