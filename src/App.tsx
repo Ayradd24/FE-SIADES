@@ -8,6 +8,7 @@ import DataWarga from "./pages/admin/DataWarga";
 import PersetujuanSurat from "./pages/admin/PersetujuanSurat";
 import ManajemenKatalog from "./pages/admin/ManajemenKatalog";
 import ManajemenIuran from "./pages/admin/ManajemenIuran";
+import ManajemenPerangkat from "./pages/admin/ManajemenPerangkat";
 import StrukturDesa from "./pages/StrukturDesa";
 import KatalogJasa from "./pages/KatalogJasa";
 import AdminLayout from "./components/layout/AdminLayout";
@@ -235,6 +236,7 @@ function AppRoutes() {
             element={<ManajemenKatalog />}
           />
           <Route path="/admin/manajemen-iuran" element={<ManajemenIuran />} />
+          <Route path="/admin/manajemen-perangkat" element={<ManajemenPerangkat />} />
           <Route path="/admin/struktur-desa" element={<StrukturDesa />} />
         </Route>
       </Route>

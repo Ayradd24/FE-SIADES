@@ -60,6 +60,11 @@ const navItems: NavItem[] = [
 
 const Sidebar: React.FC = () => {
   const navigate = useNavigate();
+  const currentRole = localStorage.getItem('siades_role');
+
+  const filteredNavItems = currentRole === 'super-admin'
+    ? [...navItems, { label: 'Manajemen Perangkat', path: '/admin/manajemen-perangkat', icon: <UsersIcon /> }]
+    : navItems;
 
   const handleLogout = () => {
     localStorage.removeItem('siades_token');
@@ -87,7 +92,7 @@ const Sidebar: React.FC = () => {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {navItems.map((item) => (
+        {filteredNavItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
