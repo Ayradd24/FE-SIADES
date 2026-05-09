@@ -7,19 +7,19 @@ import logoDesaImg from '../../assets/logo-desa.png';
  * HALAMAN LOGIN UNIVERSAL — digunakan oleh SEMUA user (warga & admin).
  *
  * Cara kerja:
- * - User mengisi email + password
- * - Backend menentukan role dari response (admin / user)
- * - Jika role === 'admin' → redirect ke /admin/dashboard
- * - Jika role === 'user'  → redirect ke /beranda (halaman warga)
+ * - User mengisi username + password
+ * - Backend menentukan role dari response
+ * - Jika role === 'super-admin' atau 'admin' → redirect ke /admin/dashboard
+ * - Jika role === 'warga' → redirect ke /warga/dashboard
  *
- * API Endpoint: POST /auth/login
- * Request body : { email: string, password: string }
- * Response     : { token: string, role: 'admin' | 'user', name?: string }
+ * API Endpoint: POST /api/login
+ * Request body : { username: string, password: string }
+ * Response     : { token: string, user: { roles: string[], name: string } }
  *
  * LocalStorage keys yang disimpan:
- *   - siades_token  : JWT token
- *   - siades_role   : 'admin' | 'user'
- *   - siades_name   : nama user (opsional, jika dikembalikan BE)
+ *   - siades_token  : Sanctum token
+ *   - siades_role   : 'super-admin' | 'admin' | 'warga'
+ *   - siades_name   : nama user
  */
 
 interface LoginForm {
@@ -84,7 +84,7 @@ const LoginPage: React.FC = () => {
       localStorage.setItem('siades_name', name);
 
       // Routing berdasarkan role
-      if (role === 'super-admin' || role === 'sekretaris' || role === 'bendahara') {
+      if (role === 'super-admin' || role === 'admin') {
         navigate('/admin/dashboard');
       } else {
         navigate('/warga/dashboard');

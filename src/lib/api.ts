@@ -2,8 +2,6 @@ import axios from 'axios';
 
 export const BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
-console.log('API Base URL:', BASE_URL);
-
 const api = axios.create({
   baseURL: BASE_URL,
   headers: {

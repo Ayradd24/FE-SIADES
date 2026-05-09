@@ -8,6 +8,7 @@ import DataWarga from "./pages/admin/DataWarga";
 import PersetujuanSurat from "./pages/admin/PersetujuanSurat";
 import ManajemenKatalog from "./pages/admin/ManajemenKatalog";
 import ManajemenIuran from "./pages/admin/ManajemenIuran";
+import ManajemenPerangkat from "./pages/admin/ManajemenPerangkat";
 import StrukturDesa from "./pages/StrukturDesa";
 import KatalogJasa from "./pages/KatalogJasa";
 import AdminLayout from "./components/layout/AdminLayout";
@@ -21,6 +22,9 @@ import PengajuanSurat from "./pages/warga/PengajuanSurat";
 import KatalogJasaWarga from "./pages/warga/KatalogJasaWarga";
 import IuranSaya from "./pages/warga/IuranSaya";
 import ProfilSaya from "./pages/warga/ProfilSaya";
+
+// Import AuthProvider for token validation
+import AuthProvider from "./components/AuthProvider";
 
 const previewJasa = [
   {
@@ -209,7 +213,7 @@ function LandingPage() {
   );
 }
 
-function App() {
+function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
@@ -232,6 +236,7 @@ function App() {
             element={<ManajemenKatalog />}
           />
           <Route path="/admin/manajemen-iuran" element={<ManajemenIuran />} />
+          <Route path="/admin/manajemen-perangkat" element={<ManajemenPerangkat />} />
           <Route path="/admin/struktur-desa" element={<StrukturDesa />} />
         </Route>
       </Route>
@@ -248,6 +253,14 @@ function App() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
   );
 }
 

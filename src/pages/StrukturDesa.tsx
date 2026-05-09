@@ -138,12 +138,10 @@ function DropdownSelector({
 }
 
 function WhatsAppButton({ wa }: { wa: string }) {
-  // Using the wa variable so TS doesn't complain
-  console.log(wa);
   return (
     <button
       type="button"
-      onClick={() => { }}
+      onClick={() => window.open(`https://wa.me/${wa}`, '_blank')}
       className="bg-green-500 hover:bg-green-600 text-white font-semibold 
         px-6 py-2.5 rounded-lg shadow-lg hover:shadow-xl
         transition-transform duration-150 active:scale-95"

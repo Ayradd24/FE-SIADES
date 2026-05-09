@@ -6,6 +6,7 @@ import ToastContainer from '../../components/ui/Toast';
 import { useToast } from '../../hooks/useToast';
 import PdfPreviewModal from '../../components/modals/PdfPreviewModal';
 import SignatureModal from '../../components/modals/SignatureModal';
+import { useAuth } from '../../hooks/useAuth';
 import { PDFDocument } from 'pdf-lib';
 
 type StatusSurat = 'PENDING' | 'DISETUJUI' | 'DITOLAK';
@@ -33,6 +34,8 @@ const ITEMS_PER_PAGE = 10;
 
 const PersetujuanSurat: React.FC = () => {
   const { toasts, showToast, removeToast } = useToast();
+  const { role } = useAuth();
+  const isSuperAdmin = role === 'super-admin';
   const [data, setData] = useState<PermohonanSurat[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<'' | StatusSurat>('');
@@ -44,6 +47,7 @@ const PersetujuanSurat: React.FC = () => {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSignOpen, setIsSignOpen] = useState(false);
   const [selectedSurat, setSelectedSurat] = useState<PermohonanSurat | null>(null);
+  const [tempSignatureUrl, setTempSignatureUrl] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -67,7 +71,6 @@ const PersetujuanSurat: React.FC = () => {
 
   const handleAction = async (id: string | number, action: 'approve' | 'reject', signedPdf?: Blob) => {
     setActionLoading(id);
-    console.log(`Starting ${action} for surat ${id}`, signedPdf ? 'with signed PDF' : 'without signed PDF');
     try {
       const endpoint = action === 'approve'
         ? `/admin/persetujuan-surat/${id}/approve`
@@ -79,89 +82,85 @@ const PersetujuanSurat: React.FC = () => {
       }
 
       if (action === 'approve') {
-        const response = await api.post(endpoint, formData, {
+        await api.post(endpoint, formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
-        console.log('Approve response:', response.data);
       } else {
-        const response = await api.patch(endpoint);
-        console.log('Reject response:', response.data);
+        await api.patch(endpoint);
       }
 
       const label = action === 'approve' ? 'disetujui' : 'ditolak';
       showToast(`Permohonan surat berhasil ${label}`, 'success');
       fetchData();
     } catch (error: any) {
-      console.error(`${action} failed:`, error.response?.data || error.message);
       showToast(`Gagal memproses permohonan: ${error.response?.data?.message || error.message}`, 'error');
     } finally {
       setActionLoading(null);
       setIsSignOpen(false);
+      setIsPreviewOpen(false);
+      setTempSignatureUrl(null);
     }
   };
 
-  const handleSign = async (signatureDataUrl: string) => {
-    if (!selectedSurat) return;
+  const handleConfirmSignature = (signatureDataUrl: string) => {
+    setTempSignatureUrl(signatureDataUrl);
+    setIsSignOpen(false);
+    setIsPreviewOpen(true);
+  };
+
+  const handleFinalApprove = async (position: { x: number; y: number; page: number; scale: number }) => {
+    if (!selectedSurat || !tempSignatureUrl) return;
     
-    console.log('Starting signature process for:', selectedSurat);
     setActionLoading(selectedSurat.id);
     try {
       // 1. Fetch the original PDF
-      const storageBaseUrl = BASE_URL.replace(/\/api$/, '') + '/storage';
       const pdfUrl = selectedSurat.file_path 
-        ? `/storage/${selectedSurat.file_path}`
+        ? `${BASE_URL.replace(/\/api$/, '')}/storage/${selectedSurat.file_path}`
         : 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
       
-      console.log('Fetching PDF from:', pdfUrl);
       const response = await fetch(pdfUrl);
-      if (!response.ok) {
-        throw new Error(`Gagal mengambil file PDF (${response.status}). Pastikan file tersedia di storage.`);
-      }
+      if (!response.ok) throw new Error("Gagal mengambil file PDF");
       const existingPdfBytes = await response.arrayBuffer();
-      console.log('PDF fetched, bytes size:', existingPdfBytes.byteLength);
 
       // 2. Load the PDF with pdf-lib
       const pdfDoc = await PDFDocument.load(existingPdfBytes);
       const pages = pdfDoc.getPages();
-      const lastPage = pages[pages.length - 1];
-      console.log('PDF loaded, total pages:', pages.length);
+      const targetPage = pages[position.page - 1] || pages[pages.length - 1];
 
       // 3. Embed the signature image
-      const signatureImage = await pdfDoc.embedPng(signatureDataUrl);
-      const signatureDims = signatureImage.scale(0.3); // Scale down a bit more
+      let signatureImageBytes: ArrayBuffer;
+      if (tempSignatureUrl.startsWith('data:')) {
+        const base64 = tempSignatureUrl.split(',')[1];
+        signatureImageBytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0)).buffer;
+      } else {
+        const sigResponse = await fetch(tempSignatureUrl);
+        if (!sigResponse.ok) throw new Error("Gagal mengambil gambar tanda tangan");
+        signatureImageBytes = await sigResponse.arrayBuffer();
+      }
 
-      // 4. Draw the signature image at the bottom right
-      // Positioning logic: Last page, bottom right
-      const { width, height } = lastPage.getSize();
-      lastPage.drawImage(signatureImage, {
-        x: width - signatureDims.width - 70,
-        y: 70,
+      const signatureImage = await pdfDoc.embedPng(signatureImageBytes);
+      const signatureDims = signatureImage.scale(0.25 * position.scale); // Base 0.25 × user scale from resize controls
+
+      // 4. Calculate Coordinates
+      const { width: pdfWidth, height: pdfHeight } = targetPage.getSize();
+      
+      // pdf-lib origin is bottom-left
+      // DOM relative position is top-left
+      const x = position.x * pdfWidth;
+      const y = pdfHeight - (position.y * pdfHeight) - (signatureDims.height);
+
+      targetPage.drawImage(signatureImage, {
+        x,
+        y,
         width: signatureDims.width,
         height: signatureDims.height,
       });
-      console.log('Signature drawn on PDF');
 
-      // 5. Save the PDF
+      // 5. Save and Upload
       const pdfBytes = await pdfDoc.save();
-      const signedBlob = new Blob([pdfBytes], { type: 'application/pdf' });
-      console.log('Signed PDF generated, blob size:', signedBlob.size);
+      const signedBlob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
 
-      // 6. Send to backend
       await handleAction(selectedSurat.id, 'approve', signedBlob);
-      
-      // Optional: Auto download for admin to check
-      try {
-        const url = URL.createObjectURL(signedBlob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `Surat_${selectedSurat.nama_pemohon}_Signed.pdf`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      } catch (dlError) {
-        console.warn('Auto-download failed (non-critical):', dlError);
-      }
       
     } catch (error: any) {
       console.error('Signing failed:', error);
@@ -249,14 +248,16 @@ const PersetujuanSurat: React.FC = () => {
                       <div className="flex items-center gap-2">
                         {surat.status === 'PENDING' ? (
                           <>
-                            <Button
-                              variant="danger"
-                              size="sm"
-                              onClick={() => handleAction(surat.id, 'reject')}
-                              loading={actionLoading === surat.id}
-                            >
-                              ✕ Tolak
-                            </Button>
+                            {isSuperAdmin && (
+                              <Button
+                                variant="danger"
+                                size="sm"
+                                onClick={() => handleAction(surat.id, 'reject')}
+                                loading={actionLoading === surat.id}
+                              >
+                                ✕ Tolak
+                              </Button>
+                            )}
                             <button 
                                 onClick={() => {
                                   setSelectedSurat(surat);
@@ -266,17 +267,19 @@ const PersetujuanSurat: React.FC = () => {
                               >
                                 Detail
                               </button>
-                              <Button
-                                variant="success"
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedSurat(surat);
-                                  setIsSignOpen(true);
-                                }}
-                                loading={actionLoading === surat.id}
-                              >
-                                ✓ Setuju
-                              </Button>
+                              {isSuperAdmin && (
+                                <Button
+                                  variant="success"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedSurat(surat);
+                                    setIsSignOpen(true);
+                                  }}
+                                  loading={actionLoading === surat.id}
+                                >
+                                  ✓ Setuju
+                                </Button>
+                              )}
                           </>
                         ) : (
                           <>{getStatusBadge(surat.status)}</>
@@ -308,8 +311,14 @@ const PersetujuanSurat: React.FC = () => {
       {/* Modals */}
       <PdfPreviewModal
         isOpen={isPreviewOpen}
-        onClose={() => setIsPreviewOpen(false)}
-        title={`Detail File: ${selectedSurat?.jenis_surat || 'Surat'}`}
+        onClose={() => {
+          setIsPreviewOpen(false);
+          setTempSignatureUrl(null);
+        }}
+        title={`${tempSignatureUrl ? 'Posisikan Tanda Tangan' : 'Detail File'}: ${selectedSurat?.jenis_surat || 'Surat'}`}
+        mode={tempSignatureUrl ? 'sign' : 'view'}
+        signatureUrl={tempSignatureUrl}
+        onApprove={handleFinalApprove}
         fileUrl={selectedSurat?.file_path 
           ? `${BASE_URL.replace(/\/api$/, '')}/storage/${selectedSurat.file_path}` 
           : 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'}
@@ -319,7 +328,7 @@ const PersetujuanSurat: React.FC = () => {
         isOpen={isSignOpen}
         onClose={() => setIsSignOpen(false)}
         title="Tanda Tangan Digital"
-        onConfirm={handleSign}
+        onConfirm={handleConfirmSignature}
       />
     </div>
   );
