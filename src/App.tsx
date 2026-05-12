@@ -2,6 +2,9 @@ import { Routes, Route, Navigate, Link } from "react-router-dom";
 import logo from "./assets/logo-desa.png";
 import bg from "./assets/sawah-bg.png";
 import LoginAdmin from "./pages/admin/LoginAdmin";
+import LupaPassword from "./pages/LupaPassword";
+import VerifikasiOTP from "./pages/VerifikasiOTP";
+import GantiPassword from "./pages/GantiPassword";
 import RegisterPage from "./pages/RegisterPage";
 import Dashboard from "./pages/admin/Dashboard";
 import DataWarga from "./pages/admin/DataWarga";
@@ -185,7 +188,7 @@ function LandingPage() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => {}}
+                    onClick={() => { }}
                     className="mt-2 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold
                       px-3 py-1.5 rounded-lg transition-transform duration-150 active:scale-95 w-fit"
                   >
@@ -219,6 +222,9 @@ function AppRoutes() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginAdmin />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/LupaPassword" element={<LupaPassword />} />
+      <Route path="/verifikasi-otp" element={<VerifikasiOTP />} />
+      <Route path="/ganti-password" element={<GantiPassword />} />
       <Route path="/struktur-desa" element={<StrukturDesa />} />
       <Route path="/katalog-jasa" element={<KatalogJasa />} />
       <Route path="/admin/login" element={<Navigate to="/login" replace />} />

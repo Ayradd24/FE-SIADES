@@ -221,6 +221,12 @@ const LoginPage: React.FC = () => {
                 Buat Akun
               </Link>
             </p>
+              {/* Lupa Password Link */}
+            <p className="text-center mt-5 text-xs text-gray-500">
+              {' '}
+              <Link to="/LupaPassword" className="text-blue-500 font-semibold hover:text-blue-700 transition-colors">
+                Lupa password? </Link>
+            </p>
           </form>
         </div>
       </div>

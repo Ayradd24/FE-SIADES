@@ -86,7 +86,7 @@ const PengajuanSurat: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-[#1e3a5f] mb-2">Upload Dokumen Pendukung (KTP/KK)</label>
+            <label className="block text-sm font-semibold text-[#1e3a5f] mb-2">Upload Dokumen</label>
             <input
               type="file"
               accept=".pdf"

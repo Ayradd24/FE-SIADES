@@ -7,6 +7,7 @@ interface RegisterForm {
   namaLengkap: string;
   NIK: string;
   nomorkk: string;
+  nomorHP: string;
   username: string;
   password: string;
   konfirmasiPassword: string;
@@ -16,6 +17,7 @@ interface RegisterErrors {
   namaLengkap?: string;
   NIK?: string;
   nomorkk?: string;
+  nomorHP?: string;
   username?: string;
   password?: string;
   konfirmasiPassword?: string;
@@ -34,7 +36,7 @@ interface PasswordInputProps {
   placeholder?: string;
 }
 
-// ✅ Komponen di LUAR RegisterPage agar tidak di-recreate setiap render
+// Komponen di LUAR RegisterPage agar tidak di-recreate setiap render
 const PasswordInput = ({
   id,
   label,
@@ -60,15 +62,34 @@ const PasswordInput = ({
         onChange={onChange}
         className={`input-field pr-12 ${error ? 'border-red-400 focus:ring-red-300' : ''}`}
       />
-      <button type="button" onClick={onToggle} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+      >
         {show ? (
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+            />
           </svg>
         ) : (
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+            />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+            />
           </svg>
         )}
       </button>
@@ -83,6 +104,7 @@ const RegisterPage: React.FC = () => {
     namaLengkap: '',
     NIK: '',
     nomorkk: '',
+    nomorHP: '',
     username: '',
     password: '',
     konfirmasiPassword: '',
@@ -94,37 +116,65 @@ const RegisterPage: React.FC = () => {
 
   const validate = (): boolean => {
     const newErrors: RegisterErrors = {};
-    if (!form.namaLengkap.trim()) newErrors.namaLengkap = 'Nama lengkap tidak boleh kosong';
+
+    if (!form.namaLengkap.trim()) {
+      newErrors.namaLengkap = 'Nama lengkap tidak boleh kosong';
+    }
+
     if (!form.NIK) {
       newErrors.NIK = 'NIK tidak boleh kosong';
-    } else if (!/^\d{16}$/.test(form.NIK)) {
+    } else if (form.NIK.length !== 16) {
       newErrors.NIK = 'Format NIK tidak valid (16 digit angka)';
     }
+
     if (!form.nomorkk) {
       newErrors.nomorkk = 'Nomor Kartu Keluarga tidak boleh kosong';
-    } else if (!/^\d{16}$/.test(form.nomorkk)) {
+    } else if (form.nomorkk.length !== 16) {
       newErrors.nomorkk = 'Format nomor KK tidak valid (16 digit angka)';
     }
+
+    if (!form.nomorHP) {
+      newErrors.nomorHP = 'Nomor HP tidak boleh kosong';
+    } else if (!/^08\d{8,11}$/.test(form.nomorHP)) {
+      newErrors.nomorHP = 'Format nomor HP tidak valid (contoh: 08xxxxxxxxxx)';
+    }
+
     if (!form.username) {
       newErrors.username = 'Username tidak boleh kosong';
     }
+
     if (!form.password) {
       newErrors.password = 'Password tidak boleh kosong';
     } else if (form.password.length < 8) {
       newErrors.password = 'Password minimal 8 karakter';
+    } else if (!/[a-zA-Z]/.test(form.password)) {
+      newErrors.password = 'Password harus mengandung minimal 1 huruf';
+    } else if (!/[0-9]/.test(form.password)) {
+      newErrors.password = 'Password harus mengandung minimal 1 angka';
     }
+
     if (!form.konfirmasiPassword) {
       newErrors.konfirmasiPassword = 'Konfirmasi password tidak boleh kosong';
     } else if (form.password !== form.konfirmasiPassword) {
       newErrors.konfirmasiPassword = 'Password tidak cocok';
     }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+
+    // Sanitasi: hanya izinkan angka untuk NIK, nomorkk, dan nomorHP
+    let sanitizedValue = value;
+    if (name === 'NIK' || name === 'nomorkk' || name === 'nomorHP') {
+      sanitizedValue = value.replace(/\D/g, ''); // hapus semua karakter non-digit
+    }
+
+    setForm((prev) => ({ ...prev, [name]: sanitizedValue }));
+
+    // Hapus error field ini saat user mulai mengetik
     if (errors[name as keyof RegisterErrors]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
@@ -142,34 +192,37 @@ const RegisterPage: React.FC = () => {
         name: form.namaLengkap,
         nik: form.NIK,
         no_kk: form.nomorkk,
+        no_hp: form.nomorHP,
         username: form.username,
         password: form.password,
       });
 
       navigate('/login', { state: { successMessage: 'Akun berhasil dibuat! Silakan masuk.' } });
     } catch (error: unknown) {
-      const err = error as { 
-        response?: { 
-          data?: { 
+      const err = error as {
+        response?: {
+          data?: {
             message?: string;
             errors?: Record<string, string[]>;
-          }; 
+          };
           status?: number;
-        } 
+        };
       };
 
       if (err.response?.status === 422 && err.response?.data?.errors) {
         const backendErrors = err.response.data.errors;
         const newErrors: RegisterErrors = {};
-        
+
         if (backendErrors.name) newErrors.namaLengkap = backendErrors.name[0];
         if (backendErrors.nik) newErrors.NIK = backendErrors.nik[0];
         if (backendErrors.no_kk) newErrors.nomorkk = backendErrors.no_kk[0];
         if (backendErrors.username) newErrors.username = backendErrors.username[0];
         if (backendErrors.password) newErrors.password = backendErrors.password[0];
-        
-        setErrors(newErrors);
-        setErrors((prev) => ({ ...prev, general: 'Data tidak valid. Silakan periksa kembali inputan Anda.' }));
+
+        setErrors({
+          ...newErrors,
+          general: 'Data tidak valid. Silakan periksa kembali inputan Anda.',
+        });
       } else if (err.response?.status === 409) {
         setErrors({ general: 'NIK sudah terdaftar. Silakan gunakan NIK lain.' });
       } else if (err.response?.data?.message) {
@@ -181,7 +234,6 @@ const RegisterPage: React.FC = () => {
       setLoading(false);
     }
   };
-
 
   return (
     <div className="min-h-screen bg-[#e8edf5] flex flex-col">
@@ -198,7 +250,12 @@ const RegisterPage: React.FC = () => {
           className="inline-flex items-center gap-2 bg-blue-400 hover:bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-semibold transition-colors"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M10 19l-7-7m0 0l7-7m-7 7h18"
+            />
           </svg>
           Home
         </Link>
@@ -233,7 +290,9 @@ const RegisterPage: React.FC = () => {
                 onChange={handleChange}
                 className={`input-field ${errors.namaLengkap ? 'border-red-400 focus:ring-red-300' : ''}`}
               />
-              {errors.namaLengkap && <p className="mt-1 text-xs text-red-500">{errors.namaLengkap}</p>}
+              {errors.namaLengkap && (
+                <p className="mt-1 text-xs text-red-500">{errors.namaLengkap}</p>
+              )}
             </div>
 
             {/* NIK */}
@@ -245,13 +304,24 @@ const RegisterPage: React.FC = () => {
                 id="NIK"
                 name="NIK"
                 type="text"
+                inputMode="numeric"
+                maxLength={16}
                 autoComplete="off"
                 placeholder="16 digit NIK"
                 value={form.NIK}
                 onChange={handleChange}
                 className={`input-field ${errors.NIK ? 'border-red-400 focus:ring-red-300' : ''}`}
               />
-              {errors.NIK && <p className="mt-1 text-xs text-red-500">{errors.NIK}</p>}
+              {/* Counter digit NIK */}
+              <div className="flex justify-between items-center mt-1">
+                {errors.NIK ? (
+                  <p className="text-xs text-red-500">{errors.NIK}</p>
+                ) : (
+                  <span />
+                )}
+                <p className={`text-xs ml-auto ${form.NIK.length === 16 ? 'text-green-500' : 'text-gray-400'}`}>
+                </p>
+              </div>
             </div>
 
             {/* Nomor Kartu Keluarga */}
@@ -262,14 +332,56 @@ const RegisterPage: React.FC = () => {
               <input
                 id="nomorkk"
                 name="nomorkk"
-                type="tel"
+                type="text"
+                inputMode="numeric"
+                maxLength={16}
                 autoComplete="off"
                 placeholder="16 digit Nomor Kartu Keluarga"
                 value={form.nomorkk}
                 onChange={handleChange}
                 className={`input-field ${errors.nomorkk ? 'border-red-400 focus:ring-red-300' : ''}`}
               />
-              {errors.nomorkk && <p className="mt-1 text-xs text-red-500">{errors.nomorkk}</p>}
+              {/* Counter digit KK */}
+              <div className="flex justify-between items-center mt-1">
+                {errors.nomorkk ? (
+                  <p className="text-xs text-red-500">{errors.nomorkk}</p>
+                ) : (
+                  <span />
+                )}
+                <p className={`text-xs ml-auto ${form.nomorkk.length === 16 ? 'text-green-500' : 'text-gray-400'}`}>
+                </p>
+              </div>
+            </div>
+
+            {/* Nomor HP */}
+            <div className="mb-4">
+              <label htmlFor="nomorHP" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
+                Nomor HP
+              </label>
+              <input
+                id="nomorHP"
+                name="nomorHP"
+                type="text"
+                inputMode="numeric"
+                maxLength={13}
+                autoComplete="tel"
+                placeholder="Contoh: 08xxxxxxxxxx"
+                value={form.nomorHP}
+                onChange={handleChange}
+                className={`input-field ${errors.nomorHP ? 'border-red-400 focus:ring-red-300' : ''}`}
+              />
+              <div className="flex justify-between items-center mt-1">
+                {errors.nomorHP ? (
+                  <p className="text-xs text-red-500">{errors.nomorHP}</p>
+                ) : (
+                  <span />
+                )}
+                <p className={`text-xs ml-auto ${form.nomorHP.length >= 10 && form.nomorHP.length <= 13
+                    ? 'text-green-500'
+                    : 'text-gray-400'
+                  }`}>
+                </p>
+              </div>
             </div>
 
             {/* Username */}
@@ -287,7 +399,9 @@ const RegisterPage: React.FC = () => {
                 onChange={handleChange}
                 className={`input-field ${errors.username ? 'border-red-400 focus:ring-red-300' : ''}`}
               />
-              {errors.username && <p className="mt-1 text-xs text-red-500">{errors.username}</p>}
+              {errors.username && (
+                <p className="mt-1 text-xs text-red-500">{errors.username}</p>
+              )}
             </div>
 
             <PasswordInput
@@ -300,6 +414,30 @@ const RegisterPage: React.FC = () => {
               onToggle={() => setShowPassword((v) => !v)}
               error={errors.password}
             />
+
+            {/* Password strength indicator */}
+            {form.password.length > 0 && (
+              <div className="-mt-2 mb-4 px-1 space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className={`inline-block w-3 h-3 rounded-full flex-shrink-0 ${form.password.length >= 8 ? 'bg-green-400' : 'bg-gray-300'
+                    }`} />
+                  <span className={`text-xs ${form.password.length >= 8 ? 'text-green-600' : 'text-gray-400'
+                    }`}>Minimal 8 karakter</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`inline-block w-3 h-3 rounded-full flex-shrink-0 ${/[a-zA-Z]/.test(form.password) ? 'bg-green-400' : 'bg-gray-300'
+                    }`} />
+                  <span className={`text-xs ${/[a-zA-Z]/.test(form.password) ? 'text-green-600' : 'text-gray-400'
+                    }`}>Mengandung huruf</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`inline-block w-3 h-3 rounded-full flex-shrink-0 ${/[0-9]/.test(form.password) ? 'bg-green-400' : 'bg-gray-300'
+                    }`} />
+                  <span className={`text-xs ${/[0-9]/.test(form.password) ? 'text-green-600' : 'text-gray-400'
+                    }`}>Mengandung angka</span>
+                </div>
+              </div>
+            )}
 
             <PasswordInput
               id="konfirmasiPassword"
@@ -321,8 +459,19 @@ const RegisterPage: React.FC = () => {
             >
               {loading && (
                 <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  />
                 </svg>
               )}
               {loading ? 'MENDAFTAR...' : 'DAFTAR'}
@@ -330,7 +479,10 @@ const RegisterPage: React.FC = () => {
 
             <p className="text-center mt-5 text-sm text-gray-500">
               Sudah punya akun?{' '}
-              <Link to="/login" className="text-blue-500 font-semibold hover:text-blue-700 transition-colors">
+              <Link
+                to="/login"
+                className="text-blue-500 font-semibold hover:text-blue-700 transition-colors"
+              >
                 Masuk
               </Link>
             </p>
