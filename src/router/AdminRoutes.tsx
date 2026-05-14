@@ -1,8 +1,9 @@
 import { Navigate, Outlet } from 'react-router-dom';
+import { authStorage } from '../lib/authStorage';
 
 const AdminRoutes = () => {
-  const token = localStorage.getItem('siades_token');
-  const role = localStorage.getItem('siades_role');
+  const token = authStorage.getToken();
+  const role = authStorage.getRole();
 
   const isAuthenticated = !!token;
   const isAdmin = role === 'super-admin' || role === 'admin';

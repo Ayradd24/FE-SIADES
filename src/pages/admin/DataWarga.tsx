@@ -10,7 +10,7 @@ interface Warga {
   id: string | number;
   namaLengkap: string;
   nomorWA: string;
-  jenisKelamin: 'L' | 'P';
+  jenisKelamin: 'L' | 'P' | '-';
   alamat: string;
   rt: string;
   rw: string;
@@ -18,12 +18,13 @@ interface Warga {
   tempatLahir?: string;
   tanggalLahir?: string;
   email?: string;
+  mustUpdateCredentials?: boolean;
 }
 
 interface WargaForm {
   namaLengkap: string;
   nomorWA: string;
-  jenisKelamin: 'L' | 'P';
+  jenisKelamin: '' | 'L' | 'P';
   alamat: string;
   rt: string;
   rw: string;
@@ -31,12 +32,13 @@ interface WargaForm {
   tempatLahir: string;
   tanggalLahir: string;
   email: string;
+  mustUpdateCredentials: boolean;
 }
 
 const emptyForm: WargaForm = {
   namaLengkap: '',
   nomorWA: '',
-  jenisKelamin: 'L',
+  jenisKelamin: '',
   alamat: '',
   rt: '',
   rw: '',
@@ -44,6 +46,7 @@ const emptyForm: WargaForm = {
   tempatLahir: '',
   tanggalLahir: '',
   email: '',
+  mustUpdateCredentials: true,
 };
 
 const ITEMS_PER_PAGE = 10;
@@ -61,6 +64,7 @@ const DataWarga: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [totalData, setTotalData] = useState(0);
   const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [filterRT, setFilterRT] = useState('');
   const [filterRW, setFilterRW] = useState('');
@@ -69,6 +73,7 @@ const DataWarga: React.FC = () => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [editData, setEditData] = useState<Warga | null>(null);
   const [deleteId, setDeleteId] = useState<string | number | null>(null);
+  const [detailData, setDetailData] = useState<Warga | null>(null);
   const [form, setForm] = useState<WargaForm>(emptyForm);
   const [formLoading, setFormLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -89,8 +94,16 @@ const DataWarga: React.FC = () => {
     }
   }, [page, search, filterRT, filterRW]);
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+   
   useEffect(() => { fetchWarga(); }, [fetchWarga]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setSearch(searchInput);
+      setPage(1);
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
 
   const openCreate = () => {
     setEditData(null);
@@ -103,7 +116,7 @@ const DataWarga: React.FC = () => {
     setForm({
       namaLengkap: warga.namaLengkap,
       nomorWA: warga.nomorWA,
-      jenisKelamin: warga.jenisKelamin,
+      jenisKelamin: warga.jenisKelamin === '-' ? '' : warga.jenisKelamin,
       alamat: warga.alamat,
       rt: warga.rt,
       rw: warga.rw,
@@ -111,6 +124,7 @@ const DataWarga: React.FC = () => {
       tempatLahir: warga.tempatLahir || '',
       tanggalLahir: warga.tanggalLahir || '',
       email: warga.email || '',
+      mustUpdateCredentials: Boolean(warga.mustUpdateCredentials),
     });
     setModalOpen(true);
   };
@@ -120,21 +134,38 @@ const DataWarga: React.FC = () => {
     setConfirmOpen(true);
   };
 
+  const openDetail = (warga: Warga) => {
+    setDetailData(warga);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormLoading(true);
     try {
+      const payload = {
+        ...form,
+        nik: form.nik.trim(),
+        nomorWA: form.nomorWA.trim(),
+        email: form.email.trim(),
+      };
+
       if (editData) {
-        await api.put(`/admin/users/${editData.id}`, form);
+        await api.put(`/admin/users/${editData.id}`, payload);
         showToast('Data warga berhasil diperbarui', 'success');
       } else {
-        await api.post('/admin/users', form);
+        await api.post('/admin/users', payload);
         showToast('Warga baru berhasil ditambahkan', 'success');
       }
       setModalOpen(false);
       fetchWarga();
-    } catch {
-      showToast('Gagal menyimpan data. Silakan coba lagi.', 'error');
+    } catch (err: any) {
+      const firstValidation = err?.response?.data?.errors
+        ? Object.values(err.response.data.errors)[0]
+        : null;
+      const message = Array.isArray(firstValidation)
+        ? firstValidation[0]
+        : err?.response?.data?.message || 'Gagal menyimpan data. Silakan coba lagi.';
+      showToast(String(message), 'error');
     } finally {
       setFormLoading(false);
     }
@@ -210,8 +241,8 @@ const DataWarga: React.FC = () => {
           <input
             type="text"
             placeholder="Cari Nama Warga Atau Nomor WA"
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className="input-field pl-10"
           />
         </div>
@@ -255,7 +286,7 @@ const DataWarga: React.FC = () => {
             <thead>
               <tr className="bg-blue-400 text-white">
                 {['No', 'Nama Lengkap', 'Nomor WA', 'L/P', 'Alamat', 'RT/RW', 'Aksi'].map((h) => (
-                  <th key={h} className="px-4 py-3 text-left text-sm font-semibold whitespace-nowrap">{h}</th>
+                  <th key={h} className={`px-4 py-3 text-sm font-semibold whitespace-nowrap ${h === 'Aksi' ? 'text-center' : 'text-left'}`}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -283,7 +314,9 @@ const DataWarga: React.FC = () => {
                     <td className="px-4 py-3 text-sm font-medium text-gray-800">{warga.namaLengkap}</td>
                     <td className="px-4 py-3 text-sm text-gray-600">{warga.nomorWA}</td>
                     <td className="px-4 py-3">
-                      <span className={`w-7 h-7 rounded-full text-xs font-bold text-white flex items-center justify-center ${warga.jenisKelamin === 'L' ? 'bg-blue-400' : 'bg-pink-400'}`}>
+                      <span className={`w-7 h-7 rounded-full text-xs font-bold text-white flex items-center justify-center ${
+                        warga.jenisKelamin === 'L' ? 'bg-blue-400' : warga.jenisKelamin === 'P' ? 'bg-pink-400' : 'bg-gray-400'
+                      }`}>
                         {warga.jenisKelamin}
                       </span>
                     </td>
@@ -292,9 +325,9 @@ const DataWarga: React.FC = () => {
                       {warga.rt || warga.rw ? `RT ${warga.rt || '-'} / RW ${warga.rw || '-'}` : '-'}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-center gap-2">
                         {/* View */}
-                        <button className="w-8 h-8 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg flex items-center justify-center transition-colors" title="Detail">
+                        <button onClick={() => openDetail(warga)} className="w-8 h-8 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg flex items-center justify-center transition-colors" title="Detail">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -357,7 +390,7 @@ const DataWarga: React.FC = () => {
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">NIK</label>
-              <input className="input-field" placeholder="16 digit NIK" maxLength={16} value={form.nik} onChange={(e) => setForm({ ...form, nik: e.target.value })} />
+              <input required className="input-field" placeholder="16 digit NIK" maxLength={16} value={form.nik} onChange={(e) => setForm({ ...form, nik: e.target.value })} />
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Nomor WA *</label>
@@ -384,7 +417,8 @@ const DataWarga: React.FC = () => {
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Jenis Kelamin</label>
-              <select className="input-field" value={form.jenisKelamin} onChange={(e) => setForm({ ...form, jenisKelamin: e.target.value as 'L' | 'P' })}>
+              <select required className="input-field" value={form.jenisKelamin} onChange={(e) => setForm({ ...form, jenisKelamin: e.target.value as '' | 'L' | 'P' })}>
+                <option value="">Pilih jenis kelamin</option>
                 <option value="L">Laki-laki</option>
                 <option value="P">Perempuan</option>
               </select>
@@ -397,11 +431,21 @@ const DataWarga: React.FC = () => {
               <label className="block text-sm font-semibold text-gray-700 mb-1">Tanggal Lahir</label>
               <input type="date" className="input-field" value={form.tanggalLahir} onChange={(e) => setForm({ ...form, tanggalLahir: e.target.value })} />
             </div>
-            <div className="col-span-2">
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Email</label>
-              <input type="email" className="input-field" placeholder="email@contoh.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-            </div>
+          <div className="col-span-2">
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Email</label>
+            <input type="email" className="input-field" placeholder="email@contoh.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
           </div>
+          <div className="col-span-2">
+            <label className="inline-flex items-center gap-2 text-sm font-semibold text-gray-700">
+              <input
+                type="checkbox"
+                checked={form.mustUpdateCredentials}
+                onChange={(e) => setForm({ ...form, mustUpdateCredentials: e.target.checked })}
+              />
+              Wajib ubah username & password saat login
+            </label>
+          </div>
+        </div>
           <div className="flex gap-3 pt-2">
             <Button variant="secondary" className="flex-1" type="button" onClick={() => setModalOpen(false)}>Batal</Button>
             <Button variant="primary" className="flex-1" type="submit" loading={formLoading}>
@@ -418,6 +462,29 @@ const DataWarga: React.FC = () => {
         onConfirm={handleDelete}
         loading={deleteLoading}
       />
+
+      {/* Detail Warga */}
+      <Modal
+        isOpen={detailData !== null}
+        onClose={() => setDetailData(null)}
+        title="Detail Data Warga"
+        maxWidth="lg"
+      >
+        {detailData && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div><span className="font-semibold text-gray-700">Nama Lengkap:</span><p className="text-gray-600">{detailData.namaLengkap || '-'}</p></div>
+            <div><span className="font-semibold text-gray-700">Nomor WA:</span><p className="text-gray-600">{detailData.nomorWA || '-'}</p></div>
+            <div><span className="font-semibold text-gray-700">NIK:</span><p className="text-gray-600">{detailData.nik || '-'}</p></div>
+            <div><span className="font-semibold text-gray-700">Jenis Kelamin:</span><p className="text-gray-600">{detailData.jenisKelamin === 'L' ? 'Laki-laki' : detailData.jenisKelamin === 'P' ? 'Perempuan' : '-'}</p></div>
+            <div><span className="font-semibold text-gray-700">RT:</span><p className="text-gray-600">{detailData.rt || '-'}</p></div>
+            <div><span className="font-semibold text-gray-700">RW:</span><p className="text-gray-600">{detailData.rw || '-'}</p></div>
+            <div><span className="font-semibold text-gray-700">Tempat Lahir:</span><p className="text-gray-600">{detailData.tempatLahir || '-'}</p></div>
+            <div><span className="font-semibold text-gray-700">Tanggal Lahir:</span><p className="text-gray-600">{detailData.tanggalLahir || '-'}</p></div>
+            <div><span className="font-semibold text-gray-700">Email:</span><p className="text-gray-600">{detailData.email || '-'}</p></div>
+            <div className="md:col-span-2"><span className="font-semibold text-gray-700">Alamat:</span><p className="text-gray-600">{detailData.alamat || '-'}</p></div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

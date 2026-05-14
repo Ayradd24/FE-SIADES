@@ -1,34 +1,76 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import api from '../../lib/api';
 import Button from '../../components/ui/Button';
+import ToastContainer from '../../components/ui/Toast';
 import { useToast } from '../../hooks/useToast';
+import { authStorage } from '../../lib/authStorage';
 
 const ProfilSaya: React.FC = () => {
-  const { showToast } = useToast();
+  const { toasts, showToast, removeToast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
   const [form, setForm] = useState({
-    namaLengkap: localStorage.getItem('siades_name') || 'Warga Desa',
-    nik: '3201234567890001',
-    nomorkk: '3201234567890001',
-    username: 'Username',
-    alamat: 'Dusun Karangasem RT 01 RW 02',
+    namaLengkap: '',
+    nik: '',
+    nomorkk: '',
+    username: '',
+    alamat: '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    const fetchProfile = async () => {
+      setFetching(true);
+      try {
+        const res = await api.get('/warga/profile');
+        setForm({
+          namaLengkap: res.data?.namaLengkap || '',
+          nik: res.data?.nik || '',
+          nomorkk: res.data?.nomorkk || '',
+          username: res.data?.username || '',
+          alamat: res.data?.alamat || '',
+        });
+      } catch {
+        showToast('Gagal memuat profil', 'error');
+      } finally {
+        setFetching(false);
+      }
+    };
+
+    fetchProfile();
+  }, [showToast]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
+    try {
+      await api.put('/warga/profile', {
+        namaLengkap: form.namaLengkap,
+        username: form.username,
+        nomorkk: form.nomorkk,
+        alamat: form.alamat,
+      });
       setLoading(false);
-      localStorage.setItem('siades_name', form.namaLengkap);
+      authStorage.setName(form.namaLengkap);
       showToast('Profil berhasil diperbarui', 'success');
-    }, 1000);
+    } catch (err: any) {
+      const firstValidation = err?.response?.data?.errors
+        ? Object.values(err.response.data.errors)[0]
+        : null;
+      const message = Array.isArray(firstValidation)
+        ? firstValidation[0]
+        : err?.response?.data?.message || 'Gagal memperbarui profil';
+      showToast(String(message), 'error');
+      setLoading(false);
+    }
   };
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
       <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-blue-50">
         <h1 className="text-2xl font-bold text-[#1e3a5f] mb-2">Profil Saya</h1>
         <p className="text-gray-500 mb-8">Kelola informasi data diri Anda.</p>
@@ -54,6 +96,7 @@ const ProfilSaya: React.FC = () => {
               onChange={handleChange}
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all"
+              disabled={fetching}
             />
           </div>
 
@@ -76,7 +119,7 @@ const ProfilSaya: React.FC = () => {
               name="nomorkk"
               value={form.nomorkk}
               onChange={handleChange}
-              required
+              disabled={fetching}
               className="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-500 rounded-xl outline-none cursor-not-allowed"
             />
             <p className="text-xs text-gray-400 mt-1">Nomor Kartu Keluarga tidak dapat diubah secara mandiri. Hubungi admin desa jika ada kesalahan.</p>
@@ -91,6 +134,7 @@ const ProfilSaya: React.FC = () => {
               onChange={handleChange}
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all"
+              disabled={fetching}
             />
           </div>
 
@@ -103,12 +147,13 @@ const ProfilSaya: React.FC = () => {
               onChange={handleChange}
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all"
+              disabled={fetching}
             ></textarea>
           </div>
 
           <div className="pt-4 border-t border-gray-100 flex justify-end">
             <Button type="submit" disabled={loading}>
-              {loading ? 'Menyimpan...' : 'Simpan Perubahan'}
+              {fetching ? 'Memuat...' : loading ? 'Menyimpan...' : 'Simpan Perubahan'}
             </Button>
           </div>
         </form>

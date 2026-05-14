@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../../lib/api';
 import logoDesaImg from '../../assets/logo-desa.png';
+import { authStorage } from '../../lib/authStorage';
 
 /**
  * HALAMAN LOGIN UNIVERSAL — digunakan oleh SEMUA user (warga & admin).
@@ -78,21 +79,22 @@ const LoginPage: React.FC = () => {
       const { token, user } = response.data;
       const role = user.roles[0]; // Ambil role pertama (misal: 'warga' atau 'super-admin')
       const name = user.name;
+      const mustUpdateCredentials = Boolean(user.mustUpdateCredentials);
 
-      localStorage.setItem('siades_token', token);
-      localStorage.setItem('siades_role', role);
-      localStorage.setItem('siades_name', name);
+      authStorage.setSession(token, role, name, mustUpdateCredentials);
 
       // Routing berdasarkan role
       if (role === 'super-admin' || role === 'admin') {
         navigate('/admin/dashboard');
+      } else if (mustUpdateCredentials) {
+        navigate('/warga/setup-akun');
       } else {
         navigate('/warga/dashboard');
       }
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string }; status?: number } };
       if (err.response?.status === 401) {
-        setErrors({ general: 'Username atau password salah.' });
+        setErrors({ general: err.response?.data?.message || 'Username atau password salah.' });
       } else if (err.response?.data?.message) {
         setErrors({ general: err.response.data.message });
       } else {
@@ -224,7 +226,7 @@ const LoginPage: React.FC = () => {
               {/* Lupa Password Link */}
             <p className="text-center mt-5 text-xs text-gray-500">
               {' '}
-              <Link to="/LupaPassword" className="text-blue-500 font-semibold hover:text-blue-700 transition-colors">
+              <Link to="/lupa-password" className="text-blue-500 font-semibold hover:text-blue-700 transition-colors">
                 Lupa password? </Link>
             </p>
           </form>

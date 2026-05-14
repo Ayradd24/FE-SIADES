@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import logoDesaImg from '../assets/logo-desa.png';
+import api from '../lib/api';
 
 /**
  * HALAMAN GANTI PASSWORD
@@ -34,6 +35,14 @@ const GantiPassword: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
+  useEffect(() => {
+    if (!resetToken || !nomorHP) {
+      navigate('/lupa-password', { replace: true });
+    }
+  }, [navigate, nomorHP, resetToken]);
+
+  if (!resetToken || !nomorHP) return null;
+
   const validate = (): boolean => {
     const newErrors: ResetPasswordErrors = {};
 
@@ -61,16 +70,17 @@ const GantiPassword: React.FC = () => {
     setErrors({});
 
     try {
-      // --- MOCK: ganti dengan api.post('/auth/reset-password', { no_hp: nomorHP, reset_token: resetToken, password, password_confirmation: confirmPassword }) ---
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      console.log('Reset password for:', nomorHP, 'with token:', resetToken);
+      await api.post('/reset-password', {
+        reset_token: resetToken,
+        password,
+        password_confirmation: confirmPassword,
+      });
       setSuccess(true);
 
       // Redirect ke login setelah 2 detik
       setTimeout(() => {
         navigate('/login');
       }, 2000);
-      // ---------------------------------------------------------------------------
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string }; status?: number } };
       if (err.response?.status === 400) {

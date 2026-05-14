@@ -4,12 +4,19 @@ import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import App from './App.tsx'
 
+type BrowserWindowWithPolyfills = Window & {
+  global?: Window;
+  require?: (name: string) => Record<string, unknown>;
+};
+
+const browserWindow = window as BrowserWindowWithPolyfills;
+
 // CommonJS polyfills for Vite
-if (typeof (window as any).global === 'undefined') {
-  (window as any).global = window;
+if (typeof browserWindow.global === 'undefined') {
+  browserWindow.global = window;
 }
-if (typeof (window as any).require === 'undefined') {
-  (window as any).require = (name: string) => {
+if (typeof browserWindow.require === 'undefined') {
+  browserWindow.require = (name: string) => {
     console.warn(`Browser-side require called for: ${name}`);
     return {};
   };

@@ -1,8 +1,10 @@
 import { Navigate, Outlet } from 'react-router-dom';
+import { authStorage } from '../lib/authStorage';
 
 const WargaRoutes = () => {
-  const token = localStorage.getItem('siades_token');
-  const role = localStorage.getItem('siades_role');
+  const token = authStorage.getToken();
+  const role = authStorage.getRole();
+  const mustUpdateCredentials = authStorage.getMustUpdateCredentials();
 
   const isAuthenticated = !!token;
   // Memastikan role bukan admin (misalnya role === 'user' atau 'warga')
@@ -10,6 +12,10 @@ const WargaRoutes = () => {
 
   if (!isAuthenticated || !isWarga) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (mustUpdateCredentials) {
+    return <Navigate to="/warga/setup-akun" replace />;
   }
 
   return <Outlet />;

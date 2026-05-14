@@ -9,6 +9,9 @@ interface ConfirmDialogProps {
   loading?: boolean;
   title?: string;
   message?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  confirmVariant?: 'primary' | 'danger' | 'success';
 }
 
 const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
@@ -18,6 +21,9 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   loading = false,
   title = 'Hapus Data',
   message = 'Apakah kamu yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.',
+  confirmLabel = 'Hapus',
+  cancelLabel = 'Batal',
+  confirmVariant = 'danger',
 }) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} maxWidth="sm">
@@ -43,15 +49,15 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             onClick={onClose}
             disabled={loading}
           >
-            Batal
+            {cancelLabel}
           </Button>
           <Button
-            variant="danger"
+            variant={confirmVariant}
             className="flex-1"
             onClick={onConfirm}
             loading={loading}
           >
-            Hapus
+            {confirmLabel}
           </Button>
         </div>
       </div>

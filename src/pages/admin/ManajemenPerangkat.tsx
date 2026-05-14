@@ -30,6 +30,7 @@ const ManajemenPerangkat: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [totalData, setTotalData] = useState(0);
   const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -63,6 +64,14 @@ const ManajemenPerangkat: React.FC = () => {
   }, [page, search]);
 
   useEffect(() => { fetchAdmins(); }, [fetchAdmins]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setSearch(searchInput);
+      setPage(1);
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -172,8 +181,8 @@ const ManajemenPerangkat: React.FC = () => {
             type="text"
             className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors sm:text-sm"
             placeholder="Cari berdasarkan nama, username, atau NIK..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
           />
         </div>
       </div>

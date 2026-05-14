@@ -3,6 +3,8 @@ import api, { BASE_URL } from '../../lib/api';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 import ToastContainer from '../../components/ui/Toast';
+import ConfirmDialog from '../../components/ui/ConfirmDialog';
+import Modal from '../../components/ui/Modal';
 import { useToast } from '../../hooks/useToast';
 import PdfPreviewModal from '../../components/modals/PdfPreviewModal';
 import SignatureModal from '../../components/modals/SignatureModal';
@@ -20,6 +22,12 @@ interface PermohonanSurat {
   status: StatusSurat;
   keterangan?: string;
   file_path?: string;
+}
+
+interface JenisSuratItem {
+  id: number;
+  nama: string;
+  deskripsi?: string;
 }
 
 const MOCK_DATA: PermohonanSurat[] = [
@@ -42,12 +50,19 @@ const PersetujuanSurat: React.FC = () => {
   const [page, setPage] = useState(1);
   const [totalData, setTotalData] = useState(0);
   const [actionLoading, setActionLoading] = useState<string | number | null>(null);
+  const [rejectTargetId, setRejectTargetId] = useState<string | number | null>(null);
   
   // Modal state
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSignOpen, setIsSignOpen] = useState(false);
   const [selectedSurat, setSelectedSurat] = useState<PermohonanSurat | null>(null);
   const [tempSignatureUrl, setTempSignatureUrl] = useState<string | null>(null);
+  const [jenisSuratList, setJenisSuratList] = useState<JenisSuratItem[]>([]);
+  const [newJenisSurat, setNewJenisSurat] = useState('');
+  const [addingJenisSurat, setAddingJenisSurat] = useState(false);
+  const [isJenisSuratModalOpen, setIsJenisSuratModalOpen] = useState(false);
+  const [deleteJenisSuratTarget, setDeleteJenisSuratTarget] = useState<JenisSuratItem | null>(null);
+  const [deletingJenisSuratId, setDeletingJenisSuratId] = useState<number | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -66,8 +81,21 @@ const PersetujuanSurat: React.FC = () => {
     }
   }, [page, filterStatus]);
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+   
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  const fetchJenisSurat = useCallback(async () => {
+    try {
+      const res = await api.get('/jenis-surat');
+      setJenisSuratList(res.data ?? []);
+    } catch {
+      showToast('Gagal memuat daftar jenis surat', 'error');
+    }
+  }, [showToast]);
+
+  useEffect(() => {
+    fetchJenisSurat();
+  }, [fetchJenisSurat]);
 
   const handleAction = async (id: string | number, action: 'approve' | 'reject', signedPdf?: Blob) => {
     setActionLoading(id);
@@ -190,7 +218,116 @@ const PersetujuanSurat: React.FC = () => {
   return (
     <div>
       <ToastContainer toasts={toasts} onRemove={removeToast} />
-      <h1 className="text-3xl font-extrabold text-[#1e3a5f] mb-6">Persetujuan Surat</h1>
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <h1 className="text-3xl font-extrabold text-[#1e3a5f]">Persetujuan Surat</h1>
+        <Button onClick={() => setIsJenisSuratModalOpen(true)}>Kelola Jenis Surat</Button>
+      </div>
+
+      <Modal
+        isOpen={isJenisSuratModalOpen}
+        onClose={() => {
+          setIsJenisSuratModalOpen(false);
+          setNewJenisSurat('');
+        }}
+        title="Kelola Jenis Surat"
+      >
+        <form
+          className="space-y-4"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            if (!newJenisSurat.trim()) return;
+            setAddingJenisSurat(true);
+            try {
+              await api.post('/admin/jenis-surat', { nama: newJenisSurat.trim() });
+              showToast('Jenis surat berhasil ditambahkan', 'success');
+              setNewJenisSurat('');
+              setIsJenisSuratModalOpen(false);
+              fetchJenisSurat();
+            } catch (error: any) {
+              const message = error?.response?.data?.message || 'Gagal menambahkan jenis surat';
+              showToast(String(message), 'error');
+            } finally {
+              setAddingJenisSurat(false);
+            }
+          }}
+        >
+          <div>
+            <label className="block text-sm font-semibold text-[#1e3a5f] mb-2">Nama Jenis Surat</label>
+            <input
+              type="text"
+              value={newJenisSurat}
+              onChange={(e) => setNewJenisSurat(e.target.value)}
+              placeholder="Contoh: Surat Keterangan Penghasilan"
+              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition-all"
+              autoFocus
+            />
+          </div>
+          <div className="max-h-60 overflow-auto border border-gray-100 rounded-xl p-3">
+            <p className="text-sm font-semibold text-[#1e3a5f] mb-2">Daftar Jenis Surat</p>
+            {jenisSuratList.length === 0 ? (
+              <p className="text-sm text-gray-500">Belum ada jenis surat aktif.</p>
+            ) : (
+              <div className="space-y-2">
+                {jenisSuratList.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between gap-2 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2">
+                    <span className="text-sm font-medium text-gray-700">{item.nama}</span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="danger"
+                      disabled={deletingJenisSuratId === item.id}
+                      onClick={() => setDeleteJenisSuratTarget(item)}
+                    >
+                      Hapus
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="pt-2 flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setIsJenisSuratModalOpen(false);
+                setNewJenisSurat('');
+              }}
+            >
+              Batal
+            </Button>
+            <Button type="submit" loading={addingJenisSurat} disabled={!newJenisSurat.trim()}>
+              {addingJenisSurat ? 'Menyimpan...' : 'Simpan'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      <ConfirmDialog
+        isOpen={deleteJenisSuratTarget !== null}
+        onClose={() => setDeleteJenisSuratTarget(null)}
+        onConfirm={async () => {
+          if (!deleteJenisSuratTarget) return;
+          setDeletingJenisSuratId(deleteJenisSuratTarget.id);
+          try {
+            await api.delete(`/admin/jenis-surat/${deleteJenisSuratTarget.id}`);
+            showToast('Jenis surat berhasil dihapus', 'success');
+            setDeleteJenisSuratTarget(null);
+            fetchJenisSurat();
+          } catch (error: any) {
+            const message = error?.response?.data?.message || 'Gagal menghapus jenis surat';
+            showToast(String(message), 'error');
+          } finally {
+            setDeletingJenisSuratId(null);
+          }
+        }}
+        loading={deleteJenisSuratTarget !== null && deletingJenisSuratId === deleteJenisSuratTarget.id}
+        title="Hapus Jenis Surat"
+        message={`Apakah Anda yakin ingin menghapus "${deleteJenisSuratTarget?.nama || ''}"?`}
+        confirmLabel="Ya, Hapus"
+        cancelLabel="Batal"
+        confirmVariant="danger"
+      />
 
       {/* Filter */}
       <div className="flex gap-3 mb-4">
@@ -252,7 +389,7 @@ const PersetujuanSurat: React.FC = () => {
                               <Button
                                 variant="danger"
                                 size="sm"
-                                onClick={() => handleAction(surat.id, 'reject')}
+                                onClick={() => setRejectTargetId(surat.id)}
                                 loading={actionLoading === surat.id}
                               >
                                 ✕ Tolak
@@ -329,6 +466,23 @@ const PersetujuanSurat: React.FC = () => {
         onClose={() => setIsSignOpen(false)}
         title="Tanda Tangan Digital"
         onConfirm={handleConfirmSignature}
+      />
+
+      <ConfirmDialog
+        isOpen={rejectTargetId !== null}
+        onClose={() => setRejectTargetId(null)}
+        onConfirm={() => {
+          if (rejectTargetId !== null) {
+            handleAction(rejectTargetId, 'reject');
+          }
+          setRejectTargetId(null);
+        }}
+        loading={typeof rejectTargetId !== 'undefined' && actionLoading === rejectTargetId}
+        title="Tolak Surat"
+        message="Apakah Anda yakin ingin menolak surat ini? Tindakan ini akan tercatat dan tidak bisa dibatalkan langsung."
+        confirmLabel="Ya, Tolak"
+        cancelLabel="Batal"
+        confirmVariant="danger"
       />
     </div>
   );

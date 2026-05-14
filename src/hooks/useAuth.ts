@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
+import { authStorage } from '../lib/authStorage';
 
 export interface AuthState {
   isAuthenticated: boolean;
@@ -13,8 +14,8 @@ export interface AuthState {
 export const useAuth = (): AuthState => {
   const navigate = useNavigate();
 
-  const token = localStorage.getItem('siades_token');
-  const role = localStorage.getItem('siades_role');
+  const token = authStorage.getToken();
+  const role = authStorage.getRole();
 
   const isAuthenticated = !!token;
   const isAdmin = role === 'super-admin' || role === 'admin';
@@ -29,9 +30,7 @@ export const useAuth = (): AuthState => {
       console.warn('Logout API call failed:', error);
     } finally {
       // Always clear localStorage and redirect, regardless of API result
-      localStorage.removeItem('siades_token');
-      localStorage.removeItem('siades_role');
-      localStorage.removeItem('siades_name');
+      authStorage.clearSession();
       navigate('/login');
     }
   }, [navigate]);

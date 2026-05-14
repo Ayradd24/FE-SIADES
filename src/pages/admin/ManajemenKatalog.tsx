@@ -8,12 +8,13 @@ import { useToast } from '../../hooks/useToast';
 
 interface KatalogItem {
   id: string | number;
-  nama_usaha: string;
-  kategori: string;
+  nama_produk: string;
+  kategori_katalog_id?: number | string;
   deskripsi?: string;
   harga?: number;
-  satuan?: string;
-  status: 'Aktif' | 'Nonaktif' | 'Menunggu';
+  status: 'AKTIF' | 'NONAKTIF' | 'MENUNGGU';
+  warga_status?: 'AKTIF' | 'NONAKTIF';
+  effective_status?: 'AKTIF' | 'NONAKTIF' | 'MENUNGGU';
   user?: { id: number; name: string; username?: string };
 }
 
@@ -23,12 +24,15 @@ const ManajemenKatalog: React.FC = () => {
   const { toasts, showToast, removeToast } = useToast();
   const [data, setData] = useState<KatalogItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [page, setPage] = useState(1);
   const [totalData, setTotalData] = useState(0);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | number | null>(null);
+  const [statusConfirmOpen, setStatusConfirmOpen] = useState(false);
+  const [pendingStatusAction, setPendingStatusAction] = useState<{ id: string | number; status: 'AKTIF' | 'NONAKTIF' } | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
   const fetchData = useCallback(async () => {
@@ -51,6 +55,14 @@ const ManajemenKatalog: React.FC = () => {
     fetchData();
   }, [fetchData]);
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setSearch(searchInput);
+      setPage(1);
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
+
   const openDelete = (id: string | number) => {
     setDeleteId(id);
     setConfirmOpen(true);
@@ -71,7 +83,7 @@ const ManajemenKatalog: React.FC = () => {
     }
   };
 
-  const updateStatus = async (id: string | number, newStatus: string) => {
+  const updateStatus = async (id: string | number, newStatus: 'AKTIF' | 'NONAKTIF') => {
     try {
       await api.patch(`/admin/katalog/${id}/status`, { status: newStatus });
       showToast(`Status katalog berhasil diubah menjadi ${newStatus}`, 'success');
@@ -107,17 +119,17 @@ const ManajemenKatalog: React.FC = () => {
           </svg>
           <input
             type="text"
-            placeholder="Cari Nama Usaha..."
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            placeholder="Cari Nama Produk..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className="input-field pl-10"
           />
         </div>
         <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} className="input-field w-40">
           <option value="">Semua Status</option>
-          <option value="Aktif">Aktif</option>
-          <option value="Menunggu">Menunggu</option>
-          <option value="Nonaktif">Nonaktif</option>
+          <option value="AKTIF">Aktif</option>
+          <option value="MENUNGGU">Menunggu</option>
+          <option value="NONAKTIF">Nonaktif</option>
         </select>
       </div>
 
@@ -127,7 +139,7 @@ const ManajemenKatalog: React.FC = () => {
           <table className="w-full">
             <thead>
               <tr className="bg-blue-400 text-white">
-                {['No', 'Nama Usaha', 'Kategori', 'Nama Warga', 'Harga', 'Status', 'Aksi'].map((h) => (
+                {['No', 'Nama Produk', 'Deskripsi', 'Nama Warga', 'Harga', 'Status', 'Aksi'].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-sm font-semibold whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -149,23 +161,29 @@ const ManajemenKatalog: React.FC = () => {
                 data.map((item, idx) => (
                   <tr key={item.id} className="border-b border-gray-100 hover:bg-blue-50 transition-colors">
                     <td className="px-4 py-3 text-sm text-gray-600">{startItem + idx}</td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-800">{item.nama_usaha}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{item.kategori}</td>
+                    <td className="px-4 py-3 text-sm font-medium text-gray-800">{item.nama_produk}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">{item.deskripsi || '-'}</td>
                     <td className="px-4 py-3 text-sm text-gray-600">{item.user?.name || '-'}</td>
                     <td className="px-4 py-3 text-sm text-gray-600">{formatRupiah(item.harga)}</td>
                     <td className="px-4 py-3">
                       <Badge variant={
-                        item.status === 'Aktif' ? 'approved' : 
-                        item.status === 'Menunggu' ? 'pending' : 'rejected'
+                        (item.effective_status ?? item.status) === 'AKTIF' ? 'approved' : 
+                        (item.effective_status ?? item.status) === 'MENUNGGU' ? 'pending' : 'rejected'
                       }>
-                        {item.status}
+                        {item.effective_status ?? item.status}
                       </Badge>
+                      {item.status === 'AKTIF' && item.warga_status === 'NONAKTIF' && (
+                        <p className="text-[11px] text-amber-600 mt-1">Dinonaktifkan oleh warga</p>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        {item.status !== 'Aktif' && (
+                        {item.status !== 'AKTIF' && (
                           <button 
-                            onClick={() => updateStatus(item.id, 'Aktif')}
+                            onClick={() => {
+                              setPendingStatusAction({ id: item.id, status: 'AKTIF' });
+                              setStatusConfirmOpen(true);
+                            }}
                             className="w-8 h-8 bg-green-100 hover:bg-green-200 text-green-600 rounded-lg flex items-center justify-center transition-colors" 
                             title="Aktifkan"
                           >
@@ -174,9 +192,12 @@ const ManajemenKatalog: React.FC = () => {
                             </svg>
                           </button>
                         )}
-                        {item.status === 'Aktif' && (
+                        {item.status === 'AKTIF' && (
                           <button 
-                            onClick={() => updateStatus(item.id, 'Nonaktif')}
+                            onClick={() => {
+                              setPendingStatusAction({ id: item.id, status: 'NONAKTIF' });
+                              setStatusConfirmOpen(true);
+                            }}
                             className="w-8 h-8 bg-yellow-100 hover:bg-yellow-200 text-yellow-600 rounded-lg flex items-center justify-center transition-colors" 
                             title="Nonaktifkan"
                           >
@@ -220,6 +241,26 @@ const ManajemenKatalog: React.FC = () => {
         loading={actionLoading}
         title="Hapus Katalog"
         message="Apakah kamu yakin ingin menghapus katalog ini? Tindakan ini tidak dapat dibatalkan."
+      />
+
+      <ConfirmDialog
+        isOpen={statusConfirmOpen && pendingStatusAction !== null}
+        onClose={() => {
+          setStatusConfirmOpen(false);
+          setPendingStatusAction(null);
+        }}
+        onConfirm={async () => {
+          if (!pendingStatusAction) return;
+          await updateStatus(pendingStatusAction.id, pendingStatusAction.status);
+          setStatusConfirmOpen(false);
+          setPendingStatusAction(null);
+        }}
+        title={pendingStatusAction?.status === 'AKTIF' ? 'Setujui / Aktifkan Katalog' : 'Nonaktifkan Katalog'}
+        message={pendingStatusAction?.status === 'AKTIF'
+          ? 'Apakah Anda yakin ingin menyetujui dan mengaktifkan katalog ini?'
+          : 'Apakah Anda yakin ingin menonaktifkan katalog ini?'}
+        confirmLabel={pendingStatusAction?.status === 'AKTIF' ? 'Ya, Aktifkan' : 'Ya, Nonaktifkan'}
+        cancelLabel="Batal"
       />
     </div>
   );

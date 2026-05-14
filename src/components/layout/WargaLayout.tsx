@@ -2,6 +2,8 @@ import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import logoDesaImg from '../../assets/logo-desa.png';
 import { useAuth } from '../../hooks/useAuth';
+import ConfirmDialog from '../ui/ConfirmDialog';
+import { authStorage } from '../../lib/authStorage';
 
 // --- Icons (menggunakan SVG sederhana) ---
 const HomeIcon = () => (
@@ -19,12 +21,6 @@ const DocumentIcon = () => (
 const ShopIcon = () => (
   <svg className="w-6 h-6 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-  </svg>
-);
-
-const WalletIcon = () => (
-  <svg className="w-6 h-6 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
   </svg>
 );
 
@@ -51,15 +47,15 @@ const navItems = [
   { label: 'Beranda', path: '/warga/dashboard', icon: <HomeIcon /> },
   { label: 'Pengajuan', path: '/warga/pengajuan-surat', icon: <DocumentIcon /> },
   { label: 'Katalog', path: '/warga/katalog-jasa', icon: <ShopIcon /> },
-  { label: 'Iuran', path: '/warga/iuran-saya', icon: <WalletIcon /> },
   { label: 'Profil', path: '/warga/profil', icon: <UserIcon /> },
 ];
 
 const WargaLayout: React.FC = () => {
   const navigate = useNavigate();
   const { logout } = useAuth();
+  const [confirmLogoutOpen, setConfirmLogoutOpen] = React.useState(false);
   
-  const userName = localStorage.getItem('siades_name') || 'Warga';
+  const userName = authStorage.getName() || 'Warga';
 
   return (
     <div className="flex min-h-screen bg-[#e8edf5]">
@@ -102,7 +98,7 @@ const WargaLayout: React.FC = () => {
 
           {/* Logout */}
           <button
-            onClick={logout}
+            onClick={() => setConfirmLogoutOpen(true)}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-[#1e3a5f] hover:bg-red-100 hover:text-red-600 transition-all duration-200 mt-2"
           >
             <LogoutIcon />
@@ -130,7 +126,7 @@ const WargaLayout: React.FC = () => {
             <img src={logoDesaImg} alt="Logo" className="w-8 h-8 object-contain" />
             <h1 className="text-lg font-bold text-[#1e3a5f]">Dashboard Warga</h1>
           </div>
-          <button onClick={logout} className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors">
+          <button onClick={() => setConfirmLogoutOpen(true)} className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors">
              <LogoutIcon />
           </button>
         </header>
@@ -157,6 +153,17 @@ const WargaLayout: React.FC = () => {
           </NavLink>
         ))}
       </nav>
+
+      <ConfirmDialog
+        isOpen={confirmLogoutOpen}
+        onClose={() => setConfirmLogoutOpen(false)}
+        onConfirm={logout}
+        title="Konfirmasi Logout"
+        message="Anda yakin ingin keluar dari akun warga?"
+        confirmLabel="Ya, Logout"
+        cancelLabel="Batal"
+        confirmVariant="primary"
+      />
 
     </div>
   );
