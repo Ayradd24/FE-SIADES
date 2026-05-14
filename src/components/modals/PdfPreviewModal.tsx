@@ -187,17 +187,16 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
             <div className="flex-1 bg-gray-200 p-8 overflow-auto flex justify-center">
               <div 
                 ref={previewAreaRef}
-                className="relative bg-white shadow-2xl rounded-sm overflow-hidden" 
+                className="relative bg-white shadow-2xl rounded-sm" 
                 style={{ 
                   width: '100%', 
-                  maxWidth: '800px', 
-                  aspectRatio: '1/1.414',
-                  height: 'fit-content'
+                  maxWidth: '800px',
+                  minHeight: '1131px',
                 }}
               >
                 <iframe
-                  src={`${fileUrl}#toolbar=0&navpanes=0&scrollbar=0`}
-                  className="w-full h-full border-none pointer-events-none"
+                  src={`${fileUrl}#toolbar=0&navpanes=0`}
+                  className="w-full h-full border-none"
                   style={{ minHeight: '1131px' }}
                   title="PDF Preview"
                 />

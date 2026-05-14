@@ -1,29 +1,52 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import api from '../../lib/api';
 import Button from '../../components/ui/Button';
+import ToastContainer from '../../components/ui/Toast';
 import { useToast } from '../../hooks/useToast';
+import { useEffect } from 'react';
 
 const PengajuanSurat: React.FC = () => {
-  const { showToast } = useToast();
+  const { toasts, showToast, removeToast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [jenisSuratOptions, setJenisSuratOptions] = useState<string[]>([
+    'Surat Keterangan Usaha',
+    'Surat Keterangan Domisili',
+    'Surat Keterangan Tidak Mampu',
+  ]);
 
   const [form, setForm] = useState({
     jenisSurat: 'Surat Keterangan Usaha',
-    keperluan: '',
   });
   const [file, setFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    const fetchJenisSurat = async () => {
+      try {
+        const res = await api.get('/jenis-surat');
+        const names = (res.data ?? [])
+          .map((item: { nama?: string }) => item.nama)
+          .filter((name: string | undefined): name is string => Boolean(name));
+
+        if (names.length > 0) {
+          setJenisSuratOptions(names);
+          setForm((prev) => ({ ...prev, jenisSurat: names[0] }));
+        }
+      } catch {
+        // fallback to defaults if endpoint not reachable
+      }
+    };
+
+    fetchJenisSurat();
+  }, []);
 
   // --- Form Handlers ---
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.keperluan) {
-      showToast('Keperluan surat harus diisi', 'error');
-      return;
-    }
     if (!file) {
       showToast('Dokumen pendukung harus diunggah', 'error');
       return;
@@ -33,7 +56,6 @@ const PengajuanSurat: React.FC = () => {
     try {
       const formData = new FormData();
       formData.append('jenis_surat', form.jenisSurat);
-      formData.append('keperluan', form.keperluan);
       formData.append('file', file);
 
       await api.post('/warga/pengajuan-surat', formData, {
@@ -41,12 +63,20 @@ const PengajuanSurat: React.FC = () => {
       });
 
       showToast('Pengajuan Surat berhasil dikirim', 'success');
-      setForm({ jenisSurat: 'Surat Keterangan Usaha', keperluan: '' });
+      setForm({ jenisSurat: 'Surat Keterangan Usaha' });
       setFile(null);
-    } catch (error) {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (error: any) {
       console.error('Submission failed:', error);
-      const err = error as { response?: { data?: { message?: string } } };
-      showToast(err.response?.data?.message || 'Gagal mengirim pengajuan', 'error');
+      const firstValidation = error?.response?.data?.errors
+        ? Object.values(error.response.data.errors)[0]
+        : null;
+      const message = Array.isArray(firstValidation)
+        ? firstValidation[0]
+        : error?.response?.data?.message || 'Gagal mengirim pengajuan';
+      showToast(String(message), 'error');
     } finally {
       setLoading(false);
     }
@@ -54,6 +84,7 @@ const PengajuanSurat: React.FC = () => {
 
   return (
     <div className="max-w-2xl mx-auto">
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
       <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-blue-50">
         <h1 className="text-2xl font-bold text-[#1e3a5f] mb-2">Pengajuan Surat</h1>
         <p className="text-gray-500 mb-6">Silakan lengkapi formulir di bawah ini untuk mengajukan pembuatan surat.</p>
@@ -67,27 +98,16 @@ const PengajuanSurat: React.FC = () => {
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition-all"
             >
-              <option value="Surat Keterangan Usaha">Surat Keterangan Usaha</option>
-              <option value="Surat Keterangan Domisili">Surat Keterangan Domisili</option>
-              <option value="Surat Keterangan Tidak Mampu">Surat Keterangan Tidak Mampu</option>
+              {jenisSuratOptions.map((jenis) => (
+                <option key={jenis} value={jenis}>{jenis}</option>
+              ))}
             </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-[#1e3a5f] mb-2">Keperluan</label>
-            <textarea
-              name="keperluan"
-              rows={3}
-              placeholder="Jelaskan keperluan pembuatan surat..."
-              value={form.keperluan}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition-all"
-            ></textarea>
           </div>
 
           <div>
             <label className="block text-sm font-semibold text-[#1e3a5f] mb-2">Upload Dokumen</label>
             <input
+              ref={fileInputRef}
               type="file"
               accept=".pdf"
               onChange={(e) => setFile(e.target.files?.[0] || null)}
@@ -98,6 +118,7 @@ const PengajuanSurat: React.FC = () => {
                 file:bg-blue-50 file:text-blue-700
                 hover:file:bg-blue-100 transition-all cursor-pointer"
             />
+            <p className="text-xs text-gray-500 mt-1">Format: PDF, maksimal 1.5 MB.</p>
             {file && <p className="text-xs text-green-600 mt-1 font-medium italic">File terpilih: {file.name}</p>}
           </div>
 

@@ -1,18 +1,32 @@
 import React, { useRef, useEffect, useState } from 'react';
 import SignatureCanvas from 'react-signature-canvas';
-import { X, RotateCcw, Check, Save, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { X, RotateCcw, Check, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import signatureService from '../../lib/signatureService';
 import type { AdminSignature } from '../../lib/signatureService';
 import { BASE_URL } from '../../lib/api';
 
 // Robust import handling for CommonJS interop in Vite
-let SignatureCanvasComponent: any = SignatureCanvas;
-if (SignatureCanvasComponent.default) {
-  SignatureCanvasComponent = SignatureCanvasComponent.default;
+type SignatureCanvasLike = {
+  clear?: () => void;
+  isEmpty?: () => boolean;
+  getTrimmedCanvas?: () => HTMLCanvasElement;
+  getCanvas?: () => HTMLCanvasElement;
+  canvas?: HTMLCanvasElement;
+  instance?: SignatureCanvasLike;
+};
+
+const signatureCanvasModule = SignatureCanvas as unknown as {
+  default?: React.ComponentType<Record<string, unknown>>;
+  SignatureCanvas?: React.ComponentType<Record<string, unknown>>;
+};
+
+let SignatureCanvasComponent: React.ComponentType<Record<string, unknown>> = SignatureCanvas as unknown as React.ComponentType<Record<string, unknown>>;
+if (signatureCanvasModule.default) {
+  SignatureCanvasComponent = signatureCanvasModule.default;
 }
-if (typeof SignatureCanvasComponent !== 'function' && (SignatureCanvasComponent as any).SignatureCanvas) {
-  SignatureCanvasComponent = (SignatureCanvasComponent as any).SignatureCanvas;
+if (typeof SignatureCanvasComponent !== 'function' && signatureCanvasModule.SignatureCanvas) {
+  SignatureCanvasComponent = signatureCanvasModule.SignatureCanvas;
 }
 
 interface SignatureModalProps {
@@ -23,18 +37,12 @@ interface SignatureModalProps {
 }
 
 const SignatureModal: React.FC<SignatureModalProps> = ({ isOpen, onClose, onConfirm, title }) => {
-  const sigPad = useRef<any>(null);
+  const sigPad = useRef<SignatureCanvasLike | null>(null);
   const [savedSignatures, setSavedSignatures] = useState<AdminSignature[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [saveForLater, setSaveForLater] = useState(false);
   const [signatureName, setSignatureName] = useState('');
   const [activeTab, setActiveTab] = useState<'draw' | 'saved'>('draw');
-
-  useEffect(() => {
-    if (isOpen) {
-      fetchSignatures();
-    }
-  }, [isOpen]);
 
   const fetchSignatures = async () => {
     try {
@@ -112,10 +120,16 @@ const SignatureModal: React.FC<SignatureModalProps> = ({ isOpen, onClose, onConf
     try {
       await signatureService.delete(id);
       setSavedSignatures(prev => prev.filter(s => s.id !== id));
-    } catch (err) {
+    } catch {
       alert('Gagal menghapus tanda tangan');
     }
   };
+
+  useEffect(() => {
+    if (isOpen) {
+      void fetchSignatures();
+    }
+  }, [isOpen]);
 
   return (
     <AnimatePresence>
@@ -161,7 +175,7 @@ const SignatureModal: React.FC<SignatureModalProps> = ({ isOpen, onClose, onConf
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                   <div className="border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50 overflow-hidden h-56 relative group">
                     <SignatureCanvasComponent
-                      ref={(ref: any) => { sigPad.current = ref; }}
+                      ref={(ref: unknown) => { sigPad.current = ref as SignatureCanvasLike | null; }}
                       penColor="#1e293b"
                       canvasProps={{ className: "w-full h-full cursor-crosshair" }}
                     />

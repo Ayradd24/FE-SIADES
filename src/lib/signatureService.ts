@@ -42,8 +42,18 @@ const signatureService = {
     // Create link and trigger download
     const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement('a');
+    const contentDisposition = response.headers['content-disposition'];
+    let filename = `surat-${suratId}.pdf`;
+    if (typeof contentDisposition === 'string') {
+      const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+      const asciiMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
+      const rawName = utf8Match?.[1] || asciiMatch?.[1];
+      if (rawName) {
+        filename = decodeURIComponent(rawName);
+      }
+    }
     link.href = url;
-    link.setAttribute('download', `surat-${suratId}.pdf`);
+    link.setAttribute('download', filename);
     document.body.appendChild(link);
     link.click();
     link.remove();

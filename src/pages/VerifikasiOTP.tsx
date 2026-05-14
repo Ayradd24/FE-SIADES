@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import logoDesaImg from '../assets/logo-desa.png';
+import api from '../lib/api';
 
 /**
  * HALAMAN VERIFIKASI OTP
@@ -23,7 +24,7 @@ interface VerifyOTPErrors {
 const VerifikasiOTP: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const nomorHP = (location.state as { nomorHP?: string })?.nomorHP || '';
+  const { nomorHP = '', debugOtp = null } = (location.state as { nomorHP?: string; debugOtp?: string | null }) || {};
 
   const [otp, setOtp] = useState<string[]>(Array(6).fill(''));
   const [errors, setErrors] = useState<VerifyOTPErrors>({});
@@ -48,8 +49,12 @@ const VerifikasiOTP: React.FC = () => {
 
   // Auto-focus first input on mount
   useEffect(() => {
+    if (!nomorHP) {
+      navigate('/lupa-password', { replace: true });
+      return;
+    }
     inputRefs.current[0]?.focus();
-  }, []);
+  }, [nomorHP, navigate]);
 
   const handleChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return; // hanya angka
@@ -97,15 +102,18 @@ const VerifikasiOTP: React.FC = () => {
     setErrors({});
 
     try {
-      // --- MOCK: ganti dengan api.post('/auth/forgot-password', { no_hp: nomorHP }) ---
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await api.post('/forgot-password', { no_telp: nomorHP });
       setCountdown(60);
       setCanResend(false);
       setOtp(Array(6).fill(''));
       inputRefs.current[0]?.focus();
-      // ---------------------------------------------------------------------------
-    } catch {
-      setErrors({ general: 'Gagal mengirim ulang OTP. Silakan coba lagi.' });
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string }; status?: number } };
+      if (err.response?.status === 429) {
+        setErrors({ general: err.response?.data?.message || 'Terlalu sering meminta OTP. Coba lagi nanti.' });
+      } else {
+        setErrors({ general: 'Gagal mengirim ulang OTP. Silakan coba lagi.' });
+      }
     } finally {
       setResendLoading(false);
     }
@@ -124,17 +132,20 @@ const VerifikasiOTP: React.FC = () => {
     setErrors({});
 
     try {
-      // --- MOCK: ganti dengan api.post('/auth/verify-otp', { no_hp: nomorHP, otp: otpString }) ---
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      const mockResetToken = 'mock-reset-token-123';
-      navigate('/ganti-password', {
-        state: { nomorHP, resetToken: mockResetToken },
+      const response = await api.post('/verify-reset-otp', {
+        no_telp: nomorHP,
+        otp: otpString,
       });
-      // ---------------------------------------------------------------------------
+      const resetToken = response.data?.data?.reset_token;
+      navigate('/ganti-password', {
+        state: { nomorHP, resetToken },
+      });
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string }; status?: number } };
       if (err.response?.status === 400) {
         setErrors({ otp: 'Kode OTP tidak valid atau sudah kedaluwarsa.' });
+      } else if (err.response?.status === 429) {
+        setErrors({ general: err.response?.data?.message || 'Terlalu banyak percobaan OTP. Coba lagi nanti.' });
       } else if (err.response?.data?.message) {
         setErrors({ general: err.response.data.message });
       } else {
@@ -195,6 +206,11 @@ const VerifikasiOTP: React.FC = () => {
             Kami telah mengirimkan kode verifikasi 6 digit ke nomor{' '}
             <span className="font-semibold text-[#1e3a5f]">{maskedPhone}</span>
           </p>
+          {debugOtp && (
+            <p className="text-center text-xs text-blue-500 mb-4">
+              Dev OTP: <span className="font-semibold">{debugOtp}</span>
+            </p>
+          )}
 
           {/* General Error */}
           {errors.general && (
@@ -286,7 +302,7 @@ const VerifikasiOTP: React.FC = () => {
               </Link>
             </p>
             <p className="text-center mt-2 text-sm text-gray-500">
-              <Link to="/lupapassword" className="text-blue-500 font-semibold hover:text-blue-700 transition-colors">
+              <Link to="/lupa-password" className="text-blue-500 font-semibold hover:text-blue-700 transition-colors">
                 Ganti Nomor HP
               </Link>
             </p>

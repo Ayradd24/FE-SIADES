@@ -45,7 +45,7 @@ const Modal: React.FC<ModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
+      className="fixed inset-0 z-50 flex items-start justify-center p-4 sm:items-center animate-fade-in overflow-y-auto"
       onClick={onClose}
     >
       {/* Overlay */}
@@ -55,6 +55,7 @@ const Modal: React.FC<ModalProps> = ({
       <div
         className={`
           relative bg-white rounded-2xl shadow-2xl w-full ${maxWidthClasses[maxWidth]}
+          my-4 max-h-[calc(100vh-2rem)] flex flex-col
           animate-slide-up
         `}
         onClick={(e) => e.stopPropagation()}
@@ -74,7 +75,7 @@ const Modal: React.FC<ModalProps> = ({
         </div>
 
         {/* Body */}
-        <div className="px-6 py-5">{children}</div>
+        <div className="px-6 py-5 overflow-y-auto">{children}</div>
       </div>
     </div>
   );

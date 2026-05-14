@@ -5,6 +5,7 @@ import logoDesaImg from '../assets/logo-desa.png';
 
 interface RegisterForm {
   namaLengkap: string;
+  jenisKelamin: '' | 'L' | 'P';
   NIK: string;
   nomorkk: string;
   nomorHP: string;
@@ -15,6 +16,7 @@ interface RegisterForm {
 
 interface RegisterErrors {
   namaLengkap?: string;
+  jenisKelamin?: string;
   NIK?: string;
   nomorkk?: string;
   nomorHP?: string;
@@ -102,6 +104,7 @@ const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const [form, setForm] = useState<RegisterForm>({
     namaLengkap: '',
+    jenisKelamin: '',
     NIK: '',
     nomorkk: '',
     nomorHP: '',
@@ -125,6 +128,10 @@ const RegisterPage: React.FC = () => {
       newErrors.NIK = 'NIK tidak boleh kosong';
     } else if (form.NIK.length !== 16) {
       newErrors.NIK = 'Format NIK tidak valid (16 digit angka)';
+    }
+
+    if (!form.jenisKelamin) {
+      newErrors.jenisKelamin = 'Jenis kelamin wajib dipilih';
     }
 
     if (!form.nomorkk) {
@@ -190,9 +197,10 @@ const RegisterPage: React.FC = () => {
     try {
       await api.post('/register', {
         name: form.namaLengkap,
+        jenisKelamin: form.jenisKelamin,
         nik: form.NIK,
         no_kk: form.nomorkk,
-        no_hp: form.nomorHP,
+        no_telp: form.nomorHP,
         username: form.username,
         password: form.password,
       });
@@ -214,6 +222,7 @@ const RegisterPage: React.FC = () => {
         const newErrors: RegisterErrors = {};
 
         if (backendErrors.name) newErrors.namaLengkap = backendErrors.name[0];
+        if (backendErrors.jenisKelamin) newErrors.jenisKelamin = backendErrors.jenisKelamin[0];
         if (backendErrors.nik) newErrors.NIK = backendErrors.nik[0];
         if (backendErrors.no_kk) newErrors.nomorkk = backendErrors.no_kk[0];
         if (backendErrors.username) newErrors.username = backendErrors.username[0];
@@ -322,6 +331,27 @@ const RegisterPage: React.FC = () => {
                 <p className={`text-xs ml-auto ${form.NIK.length === 16 ? 'text-green-500' : 'text-gray-400'}`}>
                 </p>
               </div>
+            </div>
+
+            {/* Jenis Kelamin */}
+            <div className="mb-4">
+              <label htmlFor="jenisKelamin" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
+                Jenis Kelamin
+              </label>
+              <select
+                id="jenisKelamin"
+                name="jenisKelamin"
+                value={form.jenisKelamin}
+                onChange={(e) => setForm((prev) => ({ ...prev, jenisKelamin: e.target.value as '' | 'L' | 'P' }))}
+                className={`input-field ${errors.jenisKelamin ? 'border-red-400 focus:ring-red-300' : ''}`}
+              >
+                <option value="">Pilih jenis kelamin</option>
+                <option value="L">Laki-laki</option>
+                <option value="P">Perempuan</option>
+              </select>
+              {errors.jenisKelamin && (
+                <p className="mt-1 text-xs text-red-500">{errors.jenisKelamin}</p>
+              )}
             </div>
 
             {/* Nomor Kartu Keluarga */}

@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
+import { authStorage } from '../lib/authStorage';
 
 interface AuthProviderProps {
   children: React.ReactNode;
@@ -23,7 +24,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     const validateToken = async () => {
-      const token = localStorage.getItem('siades_token');
+      const token = authStorage.getToken();
 
       // If no token, proceed normally (user will hit login guard if trying protected route)
       if (!token) {
@@ -38,22 +39,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // 200: Token is valid, user data is fresh
         if (response.status === 200) {
           // Optionally update role from fresh server data
-          const user = response.data;
-          if (user && user.roles && user.roles.length > 0) {
-            localStorage.setItem('siades_role', user.roles[0]);
+          const roles = response.data?.roles ?? [];
+          const meUser = response.data?.user;
+
+          if (roles.length > 0) {
+            authStorage.setRole(roles[0]);
           }
-          if (user && user.name) {
-            localStorage.setItem('siades_name', user.name);
+          if (meUser?.name) {
+            authStorage.setName(meUser.name);
           }
+          authStorage.setMustUpdateCredentials(Boolean(meUser?.must_update_credentials));
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const status = (error as { response?: { status?: number } })?.response?.status;
         // 401 or any other error: token is invalid/stale
-        console.warn('Token validation failed:', error.response?.status);
+        console.warn('Token validation failed:', status);
         
         // Clear all auth data
-        localStorage.removeItem('siades_token');
-        localStorage.removeItem('siades_role');
-        localStorage.removeItem('siades_name');
+        authStorage.clearSession();
 
         // Redirect to login
         navigate('/login', { replace: true });

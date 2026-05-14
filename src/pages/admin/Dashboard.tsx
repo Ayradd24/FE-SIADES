@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
+import { authStorage } from '../../lib/authStorage';
 
 interface DashboardStats {
   suratMenunggu: number;
   totalWarga: number;
   usahaAktif: number;
-  totalKas: number;
 }
 
 interface PermohonanSurat {
@@ -60,12 +60,6 @@ const ShopIcon = () => (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
   </svg>
 );
-const WalletIcon = () => (
-  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-  </svg>
-);
-
 const statusBadge = (status: string) => {
   const map: Record<string, string> = {
     PENDING: 'bg-yellow-100 text-yellow-700',
@@ -88,45 +82,40 @@ const SkeletonCard = () => (
 );
 
 const Dashboard: React.FC = () => {
-  const adminName = localStorage.getItem('siades_name') || 'Admin';
+  const adminName = authStorage.getName() || 'Admin';
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentSurat, setRecentSurat] = useState<PermohonanSurat[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const POLL_INTERVAL_MS = 15000;
 
-  useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const [statsRes, suratRes] = await Promise.all([
-          api.get('/admin/dashboard/stats'),
-          api.get('/admin/persetujuan-surat?limit=5&status=PENDING'),
-        ]);
-        setStats(statsRes.data);
-        setRecentSurat(suratRes.data?.data || suratRes.data || []);
-      } catch {
-        // Use mock data for development
-        setStats({
-          suratMenunggu: 5,
-          totalWarga: 1250,
-          usahaAktif: 42,
-          totalKas: 15500000,
-        });
-        setRecentSurat([
-          { id: 1, nama_pemohon: 'Herman Sumanto', jenis_surat: 'Surat Domisili', created_at: '2025-10-02', status: 'PENDING' },
-          { id: 2, nama_pemohon: 'Adit Santoso', jenis_surat: 'Pengantar SKCK', created_at: '2025-10-07', status: 'PENDING' },
-          { id: 3, nama_pemohon: 'Denis Kurnia', jenis_surat: 'Pengantar SKCK', created_at: '2025-10-08', status: 'PENDING' },
-        ]);
-        setError(null);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchDashboard = useCallback(async (isInitial = false) => {
+    if (isInitial) setLoading(true);
 
-    fetchDashboard();
+    try {
+      const [statsRes, suratRes] = await Promise.all([
+        api.get('/admin/dashboard/stats'),
+        api.get('/admin/persetujuan-surat?limit=5&status=PENDING'),
+      ]);
+      setStats(statsRes.data);
+      setRecentSurat(suratRes.data?.data || suratRes.data || []);
+      setError(null);
+    } catch {
+      setError('Gagal memuat data real-time dashboard');
+    } finally {
+      if (isInitial) setLoading(false);
+    }
   }, []);
 
-  const formatRupiah = (value: number) =>
-    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value);
+  useEffect(() => {
+    fetchDashboard(true);
+
+    const intervalId = window.setInterval(() => {
+      fetchDashboard(false);
+    }, POLL_INTERVAL_MS);
+
+    return () => window.clearInterval(intervalId);
+  }, [fetchDashboard]);
 
   const formatDate = (dateStr: string) =>
     new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -147,9 +136,9 @@ const Dashboard: React.FC = () => {
       )}
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
         {loading ? (
-          Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
+          Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)
         ) : stats ? (
           <>
             <StatCard
@@ -169,12 +158,6 @@ const Dashboard: React.FC = () => {
               label="Usaha Aktif"
               value={stats.usahaAktif}
               path="/admin/manajemen-katalog"
-            />
-            <StatCard
-              icon={<WalletIcon />}
-              label="Iuran & Kas"
-              value={formatRupiah(stats.totalKas)}
-              path="/admin/manajemen-iuran"
             />
           </>
         ) : null}

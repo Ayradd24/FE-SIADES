@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import logoDesaImg from '../assets/logo-desa.png';
+import api from '../lib/api';
 
 /**
  * HALAMAN LUPA PASSWORD
@@ -63,15 +64,21 @@ const ForgotPasswordPage: React.FC = () => {
     setSuccessMessage('');
 
     try {
-      // --- MOCK: ganti dengan api.post('/auth/forgot-password', { no_hp: nomorHP }) ---
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      // Navigasi ke halaman verifikasi OTP dengan membawa nomor HP
-      navigate('/verifikasi-otp', { state: { nomorHP } });
-      // ---------------------------------------------------------------------------
+      const res = await api.post('/forgot-password', { no_telp: nomorHP });
+      navigate('/verifikasi-otp', {
+        state: {
+          nomorHP,
+          debugOtp: res.data?.data?.debug_otp ?? null,
+        },
+      });
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string }; status?: number } };
       if (err.response?.status === 404) {
         setErrors({ general: 'Nomor HP tidak terdaftar dalam sistem.' });
+      } else if (err.response?.status === 429) {
+        setErrors({ general: err.response?.data?.message || 'Terlalu sering meminta OTP. Coba lagi sebentar.' });
+      } else if (err.response?.status === 422) {
+        setErrors({ general: 'Format nomor HP tidak valid.' });
       } else if (err.response?.data?.message) {
         setErrors({ general: err.response.data.message });
       } else {
