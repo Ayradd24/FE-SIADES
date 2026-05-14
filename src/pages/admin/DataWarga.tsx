@@ -32,7 +32,6 @@ interface WargaForm {
   tempatLahir: string;
   tanggalLahir: string;
   email: string;
-  mustUpdateCredentials: boolean;
 }
 
 const emptyForm: WargaForm = {
@@ -46,7 +45,6 @@ const emptyForm: WargaForm = {
   tempatLahir: '',
   tanggalLahir: '',
   email: '',
-  mustUpdateCredentials: true,
 };
 
 const ITEMS_PER_PAGE = 10;
@@ -124,7 +122,6 @@ const DataWarga: React.FC = () => {
       tempatLahir: warga.tempatLahir || '',
       tanggalLahir: warga.tanggalLahir || '',
       email: warga.email || '',
-      mustUpdateCredentials: Boolean(warga.mustUpdateCredentials),
     });
     setModalOpen(true);
   };
@@ -434,16 +431,6 @@ const DataWarga: React.FC = () => {
           <div className="col-span-2">
             <label className="block text-sm font-semibold text-gray-700 mb-1">Email</label>
             <input type="email" className="input-field" placeholder="email@contoh.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-          </div>
-          <div className="col-span-2">
-            <label className="inline-flex items-center gap-2 text-sm font-semibold text-gray-700">
-              <input
-                type="checkbox"
-                checked={form.mustUpdateCredentials}
-                onChange={(e) => setForm({ ...form, mustUpdateCredentials: e.target.checked })}
-              />
-              Wajib ubah username & password saat login
-            </label>
           </div>
         </div>
           <div className="flex gap-3 pt-2">

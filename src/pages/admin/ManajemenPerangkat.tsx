@@ -61,7 +61,7 @@ const ManajemenPerangkat: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, search]);
+  }, [page, search, showToast]);
 
   useEffect(() => { fetchAdmins(); }, [fetchAdmins]);
 
@@ -337,7 +337,7 @@ const ManajemenPerangkat: React.FC = () => {
             <label className="block text-sm font-medium text-gray-700 mb-1">Pilih Jabatan</label>
             <select
               value={selectedRole}
-              onChange={(e) => setSelectedRole(e.target.value as any)}
+              onChange={(e) => setSelectedRole(e.target.value as 'admin' | 'super-admin')}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="admin">Admin Desa</option>
