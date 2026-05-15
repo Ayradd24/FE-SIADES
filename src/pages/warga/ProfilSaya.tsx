@@ -13,12 +13,29 @@ const ProfilSaya: React.FC = () => {
     namaLengkap: '',
     nik: '',
     nomorkk: '',
+    nomorhp: '',
     username: '',
     alamat: '',
+    rt: '',
+    rw: '',
+    jenisKelamin: '',
+    tempatLahir: '',
+    tanggalLahir: '',
+    email: '',
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+
+    if (name === 'nomorhp') {
+      const digitsOnly = value.replace(/\D/g, '');
+      if (digitsOnly.length <= 13) {
+        setForm({ ...form, nomorhp: digitsOnly });
+      }
+      return;
+    }
+
+    setForm({ ...form, [name]: value });
   };
 
   useEffect(() => {
@@ -30,8 +47,15 @@ const ProfilSaya: React.FC = () => {
           namaLengkap: res.data?.namaLengkap || '',
           nik: res.data?.nik || '',
           nomorkk: res.data?.nomorkk || '',
+          nomorhp: res.data?.nomorhp || '',
           username: res.data?.username || '',
           alamat: res.data?.alamat || '',
+          rt: res.data?.rt || '',
+          rw: res.data?.rw || '',
+          jenisKelamin: res.data?.jenisKelamin || '',
+          tempatLahir: res.data?.tempatLahir || '',
+          tanggalLahir: res.data?.tanggalLahir || '',
+          email: res.data?.email || '',
         });
       } catch {
         showToast('Gagal memuat profil', 'error');
@@ -45,13 +69,31 @@ const ProfilSaya: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (form.nomorhp && (form.nomorhp.length < 10 || form.nomorhp.length > 13 || !form.nomorhp.startsWith('08'))) {
+      showToast('Nomor HP harus diawali 08 dan terdiri dari 10-13 digit', 'error');
+      return;
+    }
+
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      showToast('Format email tidak valid', 'error');
+      return;
+    }
+
     setLoading(true);
     try {
       await api.put('/warga/profile', {
         namaLengkap: form.namaLengkap,
         username: form.username,
         nomorkk: form.nomorkk,
+        nomorhp: form.nomorhp,
         alamat: form.alamat,
+        rt: form.rt,
+        rw: form.rw,
+        jenisKelamin: form.jenisKelamin,
+        tempatLahir: form.tempatLahir,
+        tanggalLahir: form.tanggalLahir,
+        email: form.email || null,
       });
       setLoading(false);
       authStorage.setName(form.namaLengkap);
@@ -126,6 +168,42 @@ const ProfilSaya: React.FC = () => {
           </div>
 
           <div>
+            <label className="block text-sm font-semibold text-[#1e3a5f] mb-1">Nomor Handphone</label>
+            <input
+              type="text"
+              name="nomorhp"
+              value={form.nomorhp}
+              onChange={handleChange}
+              disabled={fetching}
+              placeholder="08xxxxxxxxxx"
+              maxLength={13}
+              className={`w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all ${form.nomorhp && (!form.nomorhp.startsWith('08') || form.nomorhp.length < 10)
+                ? 'border-red-400'
+                : 'border-gray-300'
+                }`}
+            />
+            <div className="flex justify-between items-center mt-1">
+              <p className={`text-xs ${form.nomorhp && (!form.nomorhp.startsWith('08') || form.nomorhp.length < 10)
+                ? 'text-red-500'
+                : 'text-gray-400'
+                }`}>
+                {form.nomorhp && !form.nomorhp.startsWith('08')
+                  ? 'Nomor HP harus diawali dengan 08'
+                  : form.nomorhp && form.nomorhp.length < 10
+                    ? 'Nomor HP minimal 10 digit'
+                    : 'Contoh: 081234567890'}
+              </p>
+              <span className={`text-xs font-medium ${form.nomorhp.length >= 10 && form.nomorhp.length <= 13
+                ? 'text-green-500'
+                : form.nomorhp.length > 0
+                  ? 'text-red-500'
+                  : 'text-gray-400'
+                }`}>
+              </span>
+            </div>
+          </div>
+
+          <div>
             <label className="block text-sm font-semibold text-[#1e3a5f] mb-1">Username</label>
             <input
               type="text"
@@ -145,10 +223,102 @@ const ProfilSaya: React.FC = () => {
               rows={3}
               value={form.alamat}
               onChange={handleChange}
-              required
+              placeholder="Alamat lengkap"
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all"
               disabled={fetching}
             ></textarea>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-[#1e3a5f] mb-1">RT</label>
+              <input
+                type="text"
+                name="rt"
+                value={form.rt}
+                onChange={handleChange}
+                disabled={fetching}
+                placeholder="001"
+                className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-[#1e3a5f] mb-1">RW</label>
+              <input
+                type="text"
+                name="rw"
+                value={form.rw}
+                onChange={handleChange}
+                disabled={fetching}
+                placeholder="001"
+                className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-[#1e3a5f] mb-1">Jenis Kelamin</label>
+              <select
+                name="jenisKelamin"
+                value={form.jenisKelamin}
+                onChange={handleChange}
+                disabled={fetching}
+                className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all bg-white"
+              >
+                <option value="">Pilih jenis kelamin</option>
+                <option value="Laki-laki">Laki-laki</option>
+                <option value="Perempuan">Perempuan</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-[#1e3a5f] mb-1">Tempat Lahir</label>
+              <input
+                type="text"
+                name="tempatLahir"
+                value={form.tempatLahir}
+                onChange={handleChange}
+                disabled={fetching}
+                placeholder="Kota kelahiran"
+                className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-[#1e3a5f] mb-1">Tanggal Lahir</label>
+            <input
+              type="date"
+              name="tanggalLahir"
+              value={form.tanggalLahir}
+              onChange={handleChange}
+              disabled={fetching}
+              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-[#1e3a5f] mb-1">Email</label>
+            <input
+              type="email"
+              name="email"
+              value={form.email}
+              onChange={handleChange}
+              disabled={fetching}
+              placeholder="email@contoh.com"
+              className={`w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all ${form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)
+                ? 'border-red-400'
+                : 'border-gray-300'
+                }`}
+            />
+            <p className={`text-xs mt-1 ${form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)
+              ? 'text-red-500'
+              : 'text-gray-400'
+              }`}>
+              {form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)
+                ? 'Format email tidak valid'
+                : ''}
+            </p>
           </div>
 
           <div className="pt-4 border-t border-gray-100 flex justify-end">

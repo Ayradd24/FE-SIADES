@@ -1,9 +1,10 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import api from '../../lib/api';
 import Button from '../../components/ui/Button';
 import ToastContainer from '../../components/ui/Toast';
 import { useToast } from '../../hooks/useToast';
-import { useEffect } from 'react';
+
+
 
 const PengajuanSurat: React.FC = () => {
   const { toasts, showToast, removeToast } = useToast();
@@ -14,11 +15,13 @@ const PengajuanSurat: React.FC = () => {
     'Surat Keterangan Tidak Mampu',
   ]);
 
-  const [form, setForm] = useState({
-    jenisSurat: 'Surat Keterangan Usaha',
-  });
+  const [form, setForm] = useState({ jenisSurat: 'Surat Keterangan Usaha' });
   const [file, setFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+
+
+
 
   useEffect(() => {
     const fetchJenisSurat = async () => {
@@ -27,52 +30,38 @@ const PengajuanSurat: React.FC = () => {
         const names = (res.data ?? [])
           .map((item: { nama?: string }) => item.nama)
           .filter((name: string | undefined): name is string => Boolean(name));
-
         if (names.length > 0) {
           setJenisSuratOptions(names);
           setForm((prev) => ({ ...prev, jenisSurat: names[0] }));
         }
-      } catch {
-        // fallback to defaults if endpoint not reachable
-      }
+      } catch { /* fallback */ }
     };
-
     fetchJenisSurat();
   }, []);
 
-  // --- Form Handlers ---
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file) {
-      showToast('Dokumen pendukung harus diunggah', 'error');
-      return;
-    }
-
+    if (!file) { showToast('Dokumen pendukung harus diunggah', 'error'); return; }
     setLoading(true);
     try {
       const formData = new FormData();
       formData.append('jenis_surat', form.jenisSurat);
       formData.append('file', file);
-
       await api.post('/warga/pengajuan-surat', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-
       showToast('Pengajuan Surat berhasil dikirim', 'success');
-      setForm({ jenisSurat: 'Surat Keterangan Usaha' });
+      setForm({ jenisSurat: jenisSuratOptions[0] ?? 'Surat Keterangan Usaha' });
       setFile(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      if (fileInputRef.current) fileInputRef.current.value = '';
+
     } catch (error: any) {
-      console.error('Submission failed:', error);
       const firstValidation = error?.response?.data?.errors
-        ? Object.values(error.response.data.errors)[0]
-        : null;
+        ? Object.values(error.response.data.errors)[0] : null;
       const message = Array.isArray(firstValidation)
         ? firstValidation[0]
         : error?.response?.data?.message || 'Gagal mengirim pengajuan';
@@ -82,9 +71,13 @@ const PengajuanSurat: React.FC = () => {
     }
   };
 
+
+
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto space-y-6">
       <ToastContainer toasts={toasts} onRemove={removeToast} />
+
+      {/* Form Pengajuan */}
       <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-blue-50">
         <h1 className="text-2xl font-bold text-[#1e3a5f] mb-2">Pengajuan Surat</h1>
         <p className="text-gray-500 mb-6">Silakan lengkapi formulir di bawah ini untuk mengajukan pembuatan surat.</p>
@@ -122,13 +115,8 @@ const PengajuanSurat: React.FC = () => {
             {file && <p className="text-xs text-green-600 mt-1 font-medium italic">File terpilih: {file.name}</p>}
           </div>
 
-
           <div className="pt-4">
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full"
-            >
+            <Button type="submit" disabled={loading} className="w-full">
               {loading ? 'Mengirim...' : 'Kirim Pengajuan'}
             </Button>
           </div>
