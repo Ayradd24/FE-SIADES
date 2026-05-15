@@ -92,7 +92,7 @@ const DataWarga: React.FC = () => {
     }
   }, [page, search, filterRT, filterRW]);
 
-   
+
   useEffect(() => { fetchWarga(); }, [fetchWarga]);
 
   useEffect(() => {
@@ -137,6 +137,12 @@ const DataWarga: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (form.nomorWA && (form.nomorWA.length < 10 || form.nomorWA.length > 13 || !form.nomorWA.startsWith('08'))) {
+      showToast('Nomor WA harus diawali 08 dan terdiri dari 10-13 digit', 'error');
+      return;
+    }
+
     setFormLoading(true);
     try {
       const payload = {
@@ -311,13 +317,12 @@ const DataWarga: React.FC = () => {
                     <td className="px-4 py-3 text-sm font-medium text-gray-800">{warga.namaLengkap}</td>
                     <td className="px-4 py-3 text-sm text-gray-600">{warga.nomorWA}</td>
                     <td className="px-4 py-3">
-                      <span className={`w-7 h-7 rounded-full text-xs font-bold text-white flex items-center justify-center ${
-                        warga.jenisKelamin === 'L' ? 'bg-blue-400' : warga.jenisKelamin === 'P' ? 'bg-pink-400' : 'bg-gray-400'
-                      }`}>
+                      <span className={`w-7 h-7 rounded-full text-xs font-bold text-white flex items-center justify-center ${warga.jenisKelamin === 'L' ? 'bg-blue-400' : warga.jenisKelamin === 'P' ? 'bg-pink-400' : 'bg-gray-400'
+                        }`}>
                         {warga.jenisKelamin}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{warga.alamat}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600 max-w-[200px] truncate" title={warga.alamat}>{warga.alamat}</td>
                     <td className="px-4 py-3 text-sm text-gray-600">
                       {warga.rt || warga.rw ? `RT ${warga.rt || '-'} / RW ${warga.rw || '-'}` : '-'}
                     </td>
@@ -391,9 +396,43 @@ const DataWarga: React.FC = () => {
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Nomor WA *</label>
-              <input required className="input-field" placeholder="08xxxxxxxxx" value={form.nomorWA} onChange={(e) => setForm({ ...form, nomorWA: e.target.value })} />
+              <input
+                required
+                className={`input-field transition-all ${form.nomorWA && (!form.nomorWA.startsWith('08') || form.nomorWA.length < 10)
+                  ? 'border-red-400 focus:ring-red-300'
+                  : ''
+                  }`}
+                placeholder="08xxxxxxxxx"
+                maxLength={13}
+                value={form.nomorWA}
+                onChange={(e) => {
+                  const digitsOnly = e.target.value.replace(/\D/g, '');
+                  if (digitsOnly.length <= 13) {
+                    setForm({ ...form, nomorWA: digitsOnly });
+                  }
+                }}
+              />
+              <div className="flex justify-between items-center mt-1">
+                <p className={`text-xs ${form.nomorWA && (!form.nomorWA.startsWith('08') || form.nomorWA.length < 10)
+                  ? 'text-red-500'
+                  : 'text-gray-400'
+                  }`}>
+                  {form.nomorWA && !form.nomorWA.startsWith('08')
+                    ? 'Harus diawali dengan 08'
+                    : form.nomorWA && form.nomorWA.length < 10
+                      ? 'Minimal 10 digit'
+                      : 'Contoh: 081234567890'}
+                </p>
+                <span className={`text-xs font-medium ${form.nomorWA.length >= 10 && form.nomorWA.length <= 13
+                  ? 'text-green-500'
+                  : form.nomorWA.length > 0
+                    ? 'text-red-500'
+                    : 'text-gray-400'
+                  }`}>
+                </span>
+              </div>
             </div>
-            
+
             <div className="col-span-2 mt-4">
               <div className="border-b border-gray-200 pb-2 mb-4">
                 <h3 className="text-lg font-semibold text-gray-800">Data Demografi</h3>
@@ -428,11 +467,11 @@ const DataWarga: React.FC = () => {
               <label className="block text-sm font-semibold text-gray-700 mb-1">Tanggal Lahir</label>
               <input type="date" className="input-field" value={form.tanggalLahir} onChange={(e) => setForm({ ...form, tanggalLahir: e.target.value })} />
             </div>
-          <div className="col-span-2">
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Email</label>
-            <input type="email" className="input-field" placeholder="email@contoh.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            <div className="col-span-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Email</label>
+              <input type="email" className="input-field" placeholder="email@contoh.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            </div>
           </div>
-        </div>
           <div className="flex gap-3 pt-2">
             <Button variant="secondary" className="flex-1" type="button" onClick={() => setModalOpen(false)}>Batal</Button>
             <Button variant="primary" className="flex-1" type="submit" loading={formLoading}>
@@ -468,7 +507,7 @@ const DataWarga: React.FC = () => {
             <div><span className="font-semibold text-gray-700">Tempat Lahir:</span><p className="text-gray-600">{detailData.tempatLahir || '-'}</p></div>
             <div><span className="font-semibold text-gray-700">Tanggal Lahir:</span><p className="text-gray-600">{detailData.tanggalLahir || '-'}</p></div>
             <div><span className="font-semibold text-gray-700">Email:</span><p className="text-gray-600">{detailData.email || '-'}</p></div>
-            <div className="md:col-span-2"><span className="font-semibold text-gray-700">Alamat:</span><p className="text-gray-600">{detailData.alamat || '-'}</p></div>
+            <div className="md:col-span-2"><span className="font-semibold text-gray-700">Alamat:</span><p className="text-gray-600 break-all">{detailData.alamat || '-'}</p></div>
           </div>
         )}
       </Modal>
