@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import api, { BASE_URL } from '../../lib/api';
 import Modal from '../../components/ui/Modal';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
@@ -63,7 +63,6 @@ const ManajemenStrukturDesa: React.FC = () => {
   const [formLoading, setFormLoading] = useState(false);
 
   // Form fields
-  const [nama, setNama] = useState('');
   const [jabatan, setJabatan] = useState(JABATAN_OPTIONS[0]);
   const [nomorRtRw, setNomorRtRw] = useState('');
   const [dariRw, setDariRw] = useState('');
@@ -71,6 +70,13 @@ const ManajemenStrukturDesa: React.FC = () => {
   const [noWa, setNoWa] = useState('');
   const [fotoFile, setFotoFile] = useState<File | null>(null);
   const [fotoPreview, setFotoPreview] = useState<string | null>(null);
+
+  // Autocomplete search states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isRtRw = jabatan === 'Ketua RW' || jabatan === 'Ketua RT';
 
@@ -100,8 +106,36 @@ const ManajemenStrukturDesa: React.FC = () => {
     fetchData();
   }, [fetchData]);
 
+  const handleSearchInput = (q: string) => {
+    setSearchQuery(q);
+    
+    if (selectedUser && q !== selectedUser.name) {
+      setSelectedUser(null);
+    }
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    if (q.length < 3) {
+      setSearchResults([]);
+      setSearchLoading(false);
+      return;
+    }
+
+    setSearchLoading(true);
+
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await api.get('/admin/perangkat-desa/search', { params: { q } });
+        setSearchResults(res.data || []);
+      } catch {
+        // ignore
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 500);
+  };
+
   const resetForm = () => {
-    setNama('');
     setJabatan(JABATAN_OPTIONS[0]);
     setNomorRtRw('');
     setDariRw('');
@@ -110,6 +144,9 @@ const ManajemenStrukturDesa: React.FC = () => {
     setFotoFile(null);
     setFotoPreview(null);
     setEditItem(null);
+    setSelectedUser(null);
+    setSearchQuery('');
+    setSearchResults([]);
   };
 
   const openCreate = () => {
@@ -119,7 +156,15 @@ const ManajemenStrukturDesa: React.FC = () => {
 
   const openEdit = (item: StrukturDesaItem) => {
     setEditItem(item);
-    setNama(item.nama);
+    setSelectedUser({
+      id: 'placeholder',
+      name: item.nama,
+      username: '',
+      nik: '',
+      current_role: '',
+    });
+    setSearchQuery(item.nama);
+    setSearchResults([]);
     // Parse jabatan — e.g. "Ketua RT 001 RW 002" or "Ketua RW 003"
     const jabatanLower = item.jabatan.toLowerCase();
     if (jabatanLower.startsWith('ketua rt')) {
@@ -160,10 +205,12 @@ const ManajemenStrukturDesa: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nama.trim()) {
-      showToast('Nama tidak boleh kosong', 'error');
+    if (!selectedUser) {
+      showToast('Pilih warga terlebih dahulu menggunakan pencarian', 'error');
       return;
     }
+
+    const namaFinal = selectedUser.name;
 
     // Validate nomor RT/RW
     if (isRtRw && !nomorRtRw.trim()) {
@@ -187,18 +234,29 @@ const ManajemenStrukturDesa: React.FC = () => {
       }
     }
 
+    // Combine jabatan with nomor, e.g. "Ketua RW 003" or "Ketua RT 001 RW 002"
+    let jabatanFinal = jabatan;
+    if (jabatan === 'Ketua RW') {
+      jabatanFinal = `Ketua RW ${nomorRtRw.trim()}`;
+    } else if (jabatan === 'Ketua RT') {
+      jabatanFinal = `Ketua RT ${nomorRtRw.trim()} RW ${dariRw.trim()}`;
+    }
+
+    // Check for duplicate roles
+    const isDuplicate = data.some((item) => {
+      if (editItem && item.id === editItem.id) return false;
+      return item.jabatan.toLowerCase() === jabatanFinal.toLowerCase();
+    });
+
+    if (isDuplicate) {
+      showToast(`Jabatan "${jabatanFinal}" sudah diisi oleh pejabat lain. Tidak boleh duplikasi!`, 'error');
+      return;
+    }
+
     setFormLoading(true);
     try {
-      // Combine jabatan with nomor, e.g. "Ketua RW 003" or "Ketua RT 001 RW 002"
-      let jabatanFinal = jabatan;
-      if (jabatan === 'Ketua RW') {
-        jabatanFinal = `Ketua RW ${nomorRtRw.trim()}`;
-      } else if (jabatan === 'Ketua RT') {
-        jabatanFinal = `Ketua RT ${nomorRtRw.trim()} RW ${dariRw.trim()}`;
-      }
-
       const formData = new FormData();
-      formData.append('nama', nama.trim());
+      formData.append('nama', namaFinal.trim());
       formData.append('jabatan', jabatanFinal);
       formData.append('alamat', alamat.trim());
       formData.append('no_wa', noWa.trim());
@@ -424,18 +482,70 @@ const ManajemenStrukturDesa: React.FC = () => {
           </div>
 
           {/* Nama */}
-          <div>
+          <div className="relative">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nama Lengkap <span className="text-red-500">*</span>
+              Cari Warga (Nama/NIK/Username) <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
-              required
-              value={nama}
-              onChange={(e) => setNama(e.target.value)}
+              required={!selectedUser}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              placeholder="Masukkan nama lengkap"
+              placeholder="Ketik minimal 3 karakter..."
+              value={searchQuery}
+              onChange={(e) => handleSearchInput(e.target.value)}
             />
+            
+            {searchLoading && <p className="text-sm text-gray-500 mt-2">Mencari...</p>}
+            
+            {searchResults.length > 0 && !selectedUser && (
+              <ul className="mt-1 border border-gray-200 rounded-lg divide-y divide-gray-100 max-h-40 overflow-y-auto bg-white absolute z-10 w-full shadow-lg left-0 right-0">
+                {searchResults.map((u) => (
+                  <li 
+                    key={u.id} 
+                    className="p-2 hover:bg-blue-50 cursor-pointer flex justify-between items-center"
+                    onClick={() => {
+                      setSelectedUser(u);
+                      setSearchResults([]);
+                      setSearchQuery(u.name);
+                      
+                      // Auto-populate fields if available in selected citizen
+                      if (u.alamat) setAlamat(u.alamat);
+                      const wa = u.nomorWA || u.nomor_wa || u.no_wa || u.noWa;
+                      if (wa) setNoWa(wa);
+                    }}
+                  >
+                    <div>
+                      <p className="font-medium text-sm text-gray-800">{u.name}</p>
+                      <p className="text-xs text-gray-500">{u.nik} | {u.username}</p>
+                    </div>
+                    {u.current_role && (
+                      <div>
+                        <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full font-medium">{u.current_role}</span>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+            
+            {selectedUser && (
+              <div className="mt-2 p-3 bg-blue-50 border border-blue-100 rounded-lg flex justify-between items-center">
+                <div>
+                  <p className="text-sm font-medium text-blue-900">{selectedUser.name}</p>
+                  {selectedUser.nik && <p className="text-xs text-blue-700">NIK: {selectedUser.nik}</p>}
+                </div>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setSelectedUser(null);
+                    setSearchQuery('');
+                  }}
+                  className="text-xs text-red-600 hover:text-red-800 font-semibold"
+                >
+                  Batal Pilih
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Jabatan */}

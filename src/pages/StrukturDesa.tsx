@@ -1,104 +1,60 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import bg from '../assets/sawah-bg.png';
+import api, { BASE_URL } from '../lib/api';
 
-interface Pejabat {
+interface StrukturDesaItem {
+  id: number;
   nama: string;
   jabatan: string;
-  foto?: string;
-}
-
-interface RWData {
-  id: number;
-  label: string;
-  ketua: Pejabat;
   alamat: string;
-  wa: string;
-  rtList: RTData[];
+  no_wa: string;
+  foto: string | null;
 }
 
-interface RTData {
-  id: number;
-  label: string;
-  ketua: Pejabat;
-  alamat: string;
-  wa: string;
-}
-
-const kepalaDesa: Pejabat = { nama: 'Ahmad', jabatan: 'Kepala Desa' };
-const sekretaris: Pejabat = { nama: 'Ronaldo', jabatan: 'Sekretaris Desa' };
-const bendahara: Pejabat = { nama: 'Messi', jabatan: 'Bendahara Desa' };
-
-const rwList: RWData[] = [
-  {
-    id: 1,
-    label: 'RW 001',
-    ketua: { nama: 'Mulyono', jabatan: 'Ketua RW' },
-    alamat: 'Jalan Sigur no 14',
-    wa: '6281234567890',
-    rtList: [
-      {
-        id: 1,
-        label: 'RT 001',
-        ketua: { nama: 'Agus', jabatan: 'Ketua RT' },
-        alamat: 'Jalan Garuda No 3',
-        wa: '6281234567891',
-      },
-      {
-        id: 2,
-        label: 'RT 002',
-        ketua: { nama: 'Budi', jabatan: 'Ketua RT' },
-        alamat: 'Jalan Merpati No 7',
-        wa: '6281234567892',
-      },
-    ],
-  },
-  {
-    id: 2,
-    label: 'RW 002',
-    ketua: { nama: 'Slamet', jabatan: 'Ketua RW' },
-    alamat: 'Jalan Melati No 5',
-    wa: '6281234567893',
-    rtList: [
-      {
-        id: 3,
-        label: 'RT 001',
-        ketua: { nama: 'Hendra', jabatan: 'Ketua RT' },
-        alamat: 'Jalan Cendana No 12',
-        wa: '6281234567894',
-      },
-    ],
-  },
-];
+const storageBaseUrl = BASE_URL.replace(/\/api$/, '') + '/storage/';
 
 function PersonCard({
-  pejabat,
+  nama,
+  jabatan,
+  foto,
   size = 'normal',
 }: {
-  pejabat: Pejabat;
+  nama: string;
+  jabatan: string;
+  foto?: string | null;
   size?: 'normal' | 'large';
 }) {
   const iconSize = size === 'large' ? 'w-24 h-24' : 'w-20 h-20';
   const cardPadding = size === 'large' ? 'px-8 py-6' : 'px-6 py-5';
+  const cardWidth = size === 'large' ? 'w-64' : 'w-52';
 
   return (
     <div
-      className={`bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg ${cardPadding} flex flex-col items-center 
+      className={`bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg ${cardPadding} ${cardWidth} flex flex-col items-center 
         transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-white`}
     >
       <div
-        className={`${iconSize} rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center mb-3 ring-4 ring-white shadow-md`}
+        className={`${iconSize} rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center mb-3 ring-4 ring-white shadow-md overflow-hidden`}
       >
-        <svg
-          className={`${size === 'large' ? 'w-12 h-12' : 'w-10 h-10'} text-blue-800/70`}
-          fill="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
-        </svg>
+        {foto ? (
+          <img
+            src={`${storageBaseUrl}${foto}`}
+            alt={nama}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <svg
+            className={`${size === 'large' ? 'w-12 h-12' : 'w-10 h-10'} text-blue-800/70`}
+            fill="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
+          </svg>
+        )}
       </div>
-      <h3 className="font-bold text-gray-800 text-base">{pejabat.nama}</h3>
-      <p className="text-sm font-semibold text-blue-700 mt-0.5">{pejabat.jabatan}</p>
+      <h3 className="font-bold text-gray-800 text-base">{nama}</h3>
+      <p className="text-sm font-semibold text-blue-700 mt-0.5">{jabatan}</p>
     </div>
   );
 }
@@ -138,10 +94,14 @@ function DropdownSelector({
 }
 
 function WhatsAppButton({ wa }: { wa: string }) {
+  if (!wa) return null;
+  // Ensure the number starts with country code
+  const phone = wa.replace(/[^0-9]/g, '');
+  const formatted = phone.startsWith('0') ? '62' + phone.slice(1) : phone;
   return (
     <button
       type="button"
-      onClick={() => window.open(`https://wa.me/${wa}`, '_blank')}
+      onClick={() => window.open(`https://wa.me/${formatted}`, '_blank')}
       className="bg-green-500 hover:bg-green-600 text-white font-semibold 
         px-6 py-2.5 rounded-lg shadow-lg hover:shadow-xl
         transition-transform duration-150 active:scale-95"
@@ -151,64 +111,187 @@ function WhatsAppButton({ wa }: { wa: string }) {
   );
 }
 
+const getRwNumber = (jabatan: string) => {
+  const rwMatch = jabatan.match(/RW\s*(\d+)/i);
+  return rwMatch ? rwMatch[1] : '';
+};
+
 export default function StrukturDesa() {
   const navigate = useNavigate();
-  const [selectedRW, setSelectedRW] = useState(rwList[0].id);
-  const currentRW = rwList.find((rw) => rw.id === selectedRW) ?? rwList[0];
+  const location = useLocation();
+  const isAdmin = location.pathname.startsWith('/admin');
+  const [struktur, setStruktur] = useState<StrukturDesaItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [selectedRT, setSelectedRT] = useState(currentRW.rtList[0]?.id ?? 0);
-  const currentRT = currentRW.rtList.find((rt) => rt.id === selectedRT) ?? currentRW.rtList[0];
+  useEffect(() => {
+    // Fetch data from API
+    api.get('/struktur-desa')
+      .then((response) => {
+        const items = response.data?.data ?? response.data ?? [];
+        setStruktur(Array.isArray(items) ? items : []);
+      })
+      .catch(() => {
+        setStruktur([]);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
 
-  const handleRWChange = (rwId: number) => {
-    setSelectedRW(rwId);
-    const newRW = rwList.find((rw) => rw.id === rwId);
-    if (newRW && newRW.rtList.length > 0) {
-      setSelectedRT(newRW.rtList[0].id);
-    }
-  };
+  // Sort/filter data by jabatan
+  const kepalaDesa = useMemo(
+    () => struktur.find((o) => o.jabatan.toLowerCase() === 'kepala desa'),
+    [struktur]
+  );
+
+  const staffUtama = useMemo(
+    () =>
+      struktur.filter(
+        (o) =>
+          o.jabatan.toLowerCase() === 'sekretaris desa' ||
+          o.jabatan.toLowerCase() === 'bendahara desa'
+      ),
+    [struktur]
+  );
+
+  const ketuaRW = useMemo(
+    () =>
+      struktur.filter(
+        (o) =>
+          o.jabatan.toLowerCase().includes('rw') &&
+          !o.jabatan.toLowerCase().includes('rt')
+      ),
+    [struktur]
+  );
+
+  const ketuaRT = useMemo(
+    () => struktur.filter((o) => o.jabatan.toLowerCase().includes('rt')),
+    [struktur]
+  );
+
+  const [selectedRWIdx, setSelectedRWIdx] = useState(0);
+  const currentRW = ketuaRW[selectedRWIdx] ?? null;
+
+  const activeRwNumber = useMemo(() => {
+    return currentRW ? getRwNumber(currentRW.jabatan) : '';
+  }, [currentRW]);
+
+  const filteredRT = useMemo(() => {
+    if (!activeRwNumber) return ketuaRT;
+    return ketuaRT.filter((rt) => getRwNumber(rt.jabatan) === activeRwNumber);
+  }, [ketuaRT, activeRwNumber]);
+
+  const [selectedRTIdx, setSelectedRTIdx] = useState(0);
+  const currentRT = filteredRT[selectedRTIdx] ?? null;
+
+  // Reset selectedRWIdx if data changes
+  useEffect(() => {
+    setSelectedRWIdx(0);
+  }, [ketuaRW.length]);
+
+  // Reset selectedRTIdx if filtered RT options change
+  useEffect(() => {
+    setSelectedRTIdx(0);
+  }, [filteredRT.length]);
+
+  if (loading) {
+    return (
+      <div
+        className={`font-sans min-h-screen flex items-center justify-center relative overflow-x-hidden ${isAdmin ? '-m-8' : ''}`}
+        style={{
+          backgroundImage: `url(${bg})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'scroll',
+        }}
+      >
+        <div className="absolute inset-0 bg-blue-900/55 pointer-events-none" />
+        <div className="relative text-white text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4" />
+          <p className="text-lg font-medium">Memuat struktur desa...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
-      className="font-sans -m-8 min-h-screen flex flex-col relative"
+      className={`font-sans min-h-screen flex flex-col relative overflow-x-hidden ${isAdmin ? '-m-8' : ''}`}
       style={{
         backgroundImage: `url(${bg})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
-        backgroundAttachment: 'fixed',
+        backgroundAttachment: 'scroll',
       }}
     >
       {/* Single overlay for the entire page */}
       <div className="absolute inset-0 bg-blue-900/55 pointer-events-none" />
 
-      {/* ── KEPALA DESA SECTION ── */}
-      <section className="relative py-10 px-4">
-        <div className="relative max-w-5xl mx-auto">
+      {/* Home Button (only public route) */}
+      {!isAdmin && (
+        <div className="relative max-w-5xl mx-auto w-full px-4 pt-8 pb-0 z-10">
           <button
             onClick={() => navigate('/')}
-            className="flex items-center gap-1.5 text-white bg-blue-600/80 hover:bg-blue-600 backdrop-blur-sm 
-              px-4 py-1.5 rounded-full text-sm font-medium mb-6 transition-all duration-200 shadow-lg"
+            className="flex items-center gap-1.5 bg-blue-400 hover:bg-blue-500 text-white
+              px-5 py-1 rounded-full text-sm font-medium transition-colors shadow"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
             Home
           </button>
+        </div>
+      )}
 
+      {/* ── KEPALA DESA SECTION ── */}
+      <section className={`relative ${isAdmin ? 'pt-16' : 'pt-4'} pb-10 px-4`}>
+        <div className="relative max-w-5xl mx-auto">
           <h1 className="text-center text-3xl md:text-4xl font-extrabold text-white tracking-wide mb-10 drop-shadow-lg">
-            KEPALA DESA
+            STRUKTUR PEMERINTAH DESA
           </h1>
 
           <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-10">
-            <div className="order-2 md:order-1">
-              <PersonCard pejabat={sekretaris} />
-            </div>
-            <div className="order-1 md:order-2 scale-105 md:scale-110">
-              <PersonCard pejabat={kepalaDesa} size="large" />
-            </div>
-            <div className="order-3">
-              <PersonCard pejabat={bendahara} />
-            </div>
+            {/* Sekretaris (left) */}
+            {staffUtama[0] && (
+              <div className="order-2 md:order-1">
+                <PersonCard
+                  nama={staffUtama[0].nama}
+                  jabatan={staffUtama[0].jabatan}
+                  foto={staffUtama[0].foto}
+                />
+              </div>
+            )}
+
+            {/* Kepala Desa (center) */}
+            {kepalaDesa && (
+              <div className="order-1 md:order-2 scale-105 md:scale-110">
+                <PersonCard
+                  nama={kepalaDesa.nama}
+                  jabatan={kepalaDesa.jabatan}
+                  foto={kepalaDesa.foto}
+                  size="large"
+                />
+              </div>
+            )}
+
+            {/* Bendahara (right) */}
+            {staffUtama[1] && (
+              <div className="order-3">
+                <PersonCard
+                  nama={staffUtama[1].nama}
+                  jabatan={staffUtama[1].jabatan}
+                  foto={staffUtama[1].foto}
+                />
+              </div>
+            )}
           </div>
+
+          {/* If no data at all */}
+          {!kepalaDesa && staffUtama.length === 0 && (
+            <div className="text-center text-white/80 py-8">
+              <p className="text-lg">Belum ada data pejabat desa</p>
+            </div>
+          )}
         </div>
       </section>
 
@@ -218,60 +301,88 @@ export default function StrukturDesa() {
       </div>
 
       {/* ── RW SECTION ── */}
-      <section className="relative py-10 px-4">
-        <div className="relative max-w-5xl mx-auto">
-          <div className="mb-6">
-            <DropdownSelector
-              options={rwList.map((rw) => ({ value: rw.id, label: rw.label }))}
-              value={selectedRW}
-              onChange={handleRWChange}
-            />
-          </div>
-
-          <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
-            <PersonCard pejabat={currentRW.ketua} />
-            <div className="flex flex-col justify-center gap-3">
-              <h2 className="text-xl md:text-2xl font-bold text-white drop-shadow">
-                Alamat : {currentRW.alamat}
-              </h2>
-              <WhatsAppButton wa={currentRW.wa} />
+      {ketuaRW.length > 0 && (
+        <section className="relative py-10 px-4">
+          <div className="relative max-w-5xl mx-auto">
+            <div className="mb-6">
+              <DropdownSelector
+                options={ketuaRW.map((rw, idx) => ({
+                  value: idx,
+                  label: rw.jabatan.toLowerCase().startsWith('ketua') 
+                    ? rw.jabatan.replace(/^Ketua\s+/i, '') 
+                    : rw.jabatan,
+                }))}
+                value={selectedRWIdx}
+                onChange={(val) => setSelectedRWIdx(val)}
+              />
             </div>
+
+            {currentRW && (
+              <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
+                <PersonCard
+                  nama={currentRW.nama}
+                  jabatan={currentRW.jabatan.replace(/^Ketua\s+/i, '')}
+                  foto={currentRW.foto}
+                />
+                <div className="flex flex-col justify-center gap-3">
+                  {currentRW.alamat && (
+                    <h2 className="text-xl md:text-2xl font-bold text-white drop-shadow">
+                      Alamat : {currentRW.alamat}
+                    </h2>
+                  )}
+                  <WhatsAppButton wa={currentRW.no_wa} />
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Divider */}
-      <div className="relative mx-auto w-full max-w-5xl px-4">
-        <div className="border-t border-white/20" />
-      </div>
+      {filteredRT.length > 0 && (
+        <div className="relative mx-auto w-full max-w-5xl px-4">
+          <div className="border-t border-white/20" />
+        </div>
+      )}
 
       {/* ── RT SECTION ── */}
-      <section className="relative py-10 px-4 flex-1">
-        <div className="relative max-w-5xl mx-auto">
-          <div className="mb-6">
-            <DropdownSelector
-              options={currentRW.rtList.map((rt) => ({ value: rt.id, label: rt.label }))}
-              value={selectedRT}
-              onChange={setSelectedRT}
-            />
-          </div>
-
-          {currentRT && (
-            <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
-              <PersonCard pejabat={currentRT.ketua} />
-              <div className="flex flex-col justify-center gap-3">
-                <h2 className="text-xl md:text-2xl font-bold text-white drop-shadow">
-                  Alamat : {currentRT.alamat}
-                </h2>
-                <WhatsAppButton wa={currentRT.wa} />
-              </div>
+      {filteredRT.length > 0 && (
+        <section className="relative py-10 px-4 flex-1">
+          <div className="relative max-w-5xl mx-auto">
+            <div className="mb-6">
+              <DropdownSelector
+                options={filteredRT.map((rt, idx) => ({
+                  value: idx,
+                  label: rt.jabatan.replace(/^Ketua\s+/i, '').replace(/RW\s*\d+/i, '').trim(),
+                }))}
+                value={selectedRTIdx}
+                onChange={(val) => setSelectedRTIdx(val)}
+              />
             </div>
-          )}
-        </div>
-      </section>
+
+            {currentRT && (
+              <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
+                <PersonCard
+                  nama={currentRT.nama}
+                  jabatan={currentRT.jabatan.replace(/^Ketua\s+/i, '').replace(/RW\s*\d+/i, '').trim()}
+                  foto={currentRT.foto}
+                />
+                <div className="flex flex-col justify-center gap-3">
+                  {currentRT.alamat && (
+                    <h2 className="text-xl md:text-2xl font-bold text-white drop-shadow">
+                      Alamat : {currentRT.alamat}
+                    </h2>
+                  )}
+                  <WhatsAppButton wa={currentRT.no_wa} />
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* ── FOOTER ── */}
-      <footer className="relative bg-gray-800/90 backdrop-blur-sm text-white py-5">
+      <footer className="relative bg-gray-800/90 backdrop-blur-sm text-white py-5 mt-auto">
         <div className="max-w-5xl mx-auto px-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
             <div className="flex items-start gap-3">

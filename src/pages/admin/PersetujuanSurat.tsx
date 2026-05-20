@@ -363,7 +363,13 @@ const PersetujuanSurat: React.FC = () => {
             <thead>
               <tr className="bg-blue-400 text-white">
                 {['No', 'Nama Pemohon', 'Jenis Surat', 'Tanggal', 'Aksi'].map((h) => (
-                  <th key={h} className="px-5 py-3 text-left text-sm font-semibold whitespace-nowrap">{h}</th>
+                  <th 
+                    key={h} 
+                    className={`px-5 py-3 text-sm font-semibold whitespace-nowrap ${h === 'Aksi' ? 'text-center' : 'text-left'}`}
+                    style={{ textAlign: h === 'Aksi' ? 'center' : 'left' }}
+                  >
+                    {h}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -391,8 +397,8 @@ const PersetujuanSurat: React.FC = () => {
                     <td className="px-5 py-3 text-sm font-medium text-gray-800">{surat.nama_pemohon}</td>
                     <td className="px-5 py-3 text-sm text-gray-600">{surat.jenis_surat}</td>
                     <td className="px-5 py-3 text-sm text-gray-600">{formatDate(surat.created_at)}</td>
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-2">
+                    <td className="px-5 py-3 text-center">
+                      <div className="w-full flex items-center justify-center gap-2">
                         {surat.status === 'PENDING' ? (
                           <>
                             {isSuperAdmin && (

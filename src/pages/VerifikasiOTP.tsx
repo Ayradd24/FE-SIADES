@@ -140,10 +140,28 @@ const VerifikasiOTP: React.FC = () => {
         no_telp: nomorHP,
         otp: otpString,
       });
-      const resetToken = response.data?.data?.reset_token;
+      
+      // 1. Tangkap seluruh data respons
+      const resData = response.data;
+      
+      // 2. Cari reset_token di berbagai kemungkinan struktur (Bulletproof)
+      const resetToken = resData?.data?.reset_token 
+                      || resData?.reset_token 
+                      || resData?.data?.data?.reset_token;
+
+      // 3. Jika token tetap tidak ketemu, jangan pindah halaman dulu, tapi tampilkan error di form
+      if (!resetToken) {
+        console.error("Struktur respons dari backend:", resData);
+        setErrors({ general: 'Gagal membaca token dari server. Coba buka Inspect Element -> Console.' });
+        setLoading(false);
+        return;
+      }
+
+      // 4. Jika token aman, baru pindah ke halaman ganti password
       navigate('/ganti-password', {
         state: { nomorHP, nik, resetToken },
       });
+      
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string }; status?: number } };
       if (err.response?.status === 400) {

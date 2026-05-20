@@ -41,6 +41,81 @@ interface PublicKatalogItem {
   user?: { name?: string };
 }
 
+interface StrukturPreviewItem {
+  id: number;
+  nama: string;
+  jabatan: string;
+  foto: string | null;
+}
+
+function StrukturPreview() {
+  const [items, setItems] = useState<StrukturPreviewItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const storageBase = useMemo(() => BASE_URL.replace(/\/api$/, '') + '/storage/', []);
+
+  useEffect(() => {
+    api.get('/struktur-desa')
+      .then((res) => {
+        const all = (res.data?.data ?? res.data ?? []) as StrukturPreviewItem[];
+        // Show top 3: Kepala Desa first, then Sekretaris, then Bendahara
+        const order: Record<string, number> = {
+          'kepala desa': 0,
+          'sekretaris desa': 1,
+          'bendahara desa': 2,
+        };
+        const top = all
+          .filter((o) => ['kepala desa', 'sekretaris desa', 'bendahara desa'].includes(o.jabatan.toLowerCase()))
+          .sort((a, b) => (order[a.jabatan.toLowerCase()] ?? 99) - (order[b.jabatan.toLowerCase()] ?? 99))
+          .slice(0, 3);
+        setItems(top);
+      })
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  return (
+    <div className="py-12 text-center bg-gray-100">
+      <h2 className="text-xl font-bold text-blue-800 mb-8">
+        STRUKTUR PEMERINTAH DESA
+      </h2>
+      <div className="flex justify-center gap-6 flex-wrap">
+        {loading ? (
+          Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="bg-white p-5 rounded-xl w-52 shadow animate-pulse">
+              <div className="w-16 h-16 bg-gray-200 mx-auto rounded-full mb-2" />
+              <div className="h-4 bg-gray-200 rounded w-2/3 mx-auto mb-2" />
+              <div className="h-3 bg-gray-200 rounded w-1/2 mx-auto" />
+            </div>
+          ))
+        ) : items.length === 0 ? (
+          <p className="text-gray-500">Belum ada data struktur desa</p>
+        ) : (
+          items.map((item) => (
+            <div key={item.id} className="bg-white p-5 rounded-xl w-52 shadow hover:shadow-md transition-shadow">
+              <div className="w-16 h-16 bg-blue-200 mx-auto rounded-full mb-2 overflow-hidden flex items-center justify-center">
+                {item.foto ? (
+                  <img src={`${storageBase}${item.foto}`} alt={item.nama} className="w-full h-full object-cover" />
+                ) : (
+                  <svg className="w-8 h-8 text-blue-800/60" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
+                  </svg>
+                )}
+              </div>
+              <h3 className="font-semibold">{item.nama}</h3>
+              <p className="text-sm text-green-600">{item.jabatan}</p>
+            </div>
+          ))
+        )}
+      </div>
+      <Link to="/struktur-desa">
+        <button className="mt-6 bg-blue-400 text-white px-6 py-2 rounded-full hover:bg-blue-500 transition-colors">
+          LIHAT SELENGKAPNYA
+        </button>
+      </Link>
+    </div>
+  );
+}
+
 function LandingPage() {
   const [previewJasa, setPreviewJasa] = useState<PublicKatalogItem[]>([]);
   const [loadingKatalog, setLoadingKatalog] = useState(true);
@@ -84,9 +159,9 @@ function LandingPage() {
     <div className="font-sans">
       {/* NAVBAR */}
       <div className="flex justify-between items-center px-8 py-4 bg-white shadow">
-        <div className="flex items-center gap-3">
-          <img src={logo} className="w-10 h-10" alt="Logo Desa" />
-          <span className="font-semibold text-blue-800">Desa Karangasem</span>
+        <div className="flex items-center gap-4">
+          <img src={logo} className="w-14 h-14 object-contain" alt="Logo Desa" />
+          <span className="text-2xl font-extrabold text-[#1e3a5f]">Desa Karangasem</span>
         </div>
         <a href="/login">
           <button className="bg-blue-400 text-white px-5 py-1 rounded-full hover:bg-blue-500 transition-colors">
@@ -127,29 +202,7 @@ function LandingPage() {
       </div>
 
       {/* STRUKTUR */}
-      <div className="py-12 text-center bg-gray-100">
-        <h2 className="text-xl font-bold text-blue-800 mb-8">
-          STRUKTUR PEMERINTAH DESA
-        </h2>
-        <div className="flex justify-center gap-6 flex-wrap">
-          {[
-            { nama: "Ronaldo", jabatan: "Sekretaris Desa" },
-            { nama: "Ahmad", jabatan: "Kepala Desa" },
-            { nama: "Messi", jabatan: "Bendahara Desa" },
-          ].map((item, i) => (
-            <div key={i} className="bg-white p-5 rounded-xl w-52 shadow">
-              <div className="w-16 h-16 bg-blue-200 mx-auto rounded-full mb-2" />
-              <h3 className="font-semibold">{item.nama}</h3>
-              <p className="text-sm text-green-600">{item.jabatan}</p>
-            </div>
-          ))}
-        </div>
-        <Link to="/struktur-desa">
-          <button className="mt-6 bg-blue-400 text-white px-6 py-2 rounded-full hover:bg-blue-500 transition-colors">
-            LIHAT SELENGKAPNYA
-          </button>
-        </Link>
-      </div>
+      <StrukturPreview />
 
       {/* KATALOG */}
       <div id="katalog-jasa" className="py-12 bg-[#e8edf5]">
