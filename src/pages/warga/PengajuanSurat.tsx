@@ -5,6 +5,8 @@ import ToastContainer from '../../components/ui/Toast';
 import { useToast } from '../../hooks/useToast';
 import { useEffect } from 'react';
 
+const MAX_PDF_SIZE_BYTES = 1536 * 1024;
+
 const PengajuanSurat: React.FC = () => {
   const { toasts, showToast, removeToast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -43,6 +45,32 @@ const PengajuanSurat: React.FC = () => {
   // --- Form Handlers ---
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0] || null;
+
+    if (!selectedFile) {
+      setFile(null);
+      return;
+    }
+
+    const isPdf = selectedFile.type === 'application/pdf' || selectedFile.name.toLowerCase().endsWith('.pdf');
+    if (!isPdf) {
+      showToast('Dokumen harus berupa file PDF.', 'error');
+      setFile(null);
+      e.target.value = '';
+      return;
+    }
+
+    if (selectedFile.size > MAX_PDF_SIZE_BYTES) {
+      showToast('Ukuran PDF maksimal 1.5 MB.', 'error');
+      setFile(null);
+      e.target.value = '';
+      return;
+    }
+
+    setFile(selectedFile);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -109,8 +137,8 @@ const PengajuanSurat: React.FC = () => {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".pdf"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              accept="application/pdf,.pdf"
+              onChange={handleFileChange}
               className="block w-full text-sm text-gray-500
                 file:mr-4 file:py-2 file:px-4
                 file:rounded-xl file:border-0

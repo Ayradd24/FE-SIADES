@@ -31,8 +31,17 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      const role = authStorage.getRole();
+      const currentPath = window.location.pathname;
+      const loginPath = currentPath.startsWith('/admin') || role === 'admin' || role === 'super-admin'
+        ? '/admin/login'
+        : '/login';
+
       authStorage.clearSession();
-      window.location.href = '/admin/login';
+
+      if (!currentPath.startsWith('/login') && !currentPath.startsWith('/admin/login')) {
+        window.location.href = `${loginPath}?expired=true`;
+      }
     }
     return Promise.reject(error);
   }
