@@ -43,16 +43,21 @@ const ProfilSaya: React.FC = () => {
       setFetching(true);
       try {
         const res = await api.get('/warga/profile');
+        
+        // PETA DATA: Konversi "L" atau "P" dari backend ke teks panjang untuk Form Dropdown
+        const genderBackend = res.data?.jenisKelamin || '';
+        const jenisKelaminForm = genderBackend === 'L' ? 'Laki-laki' : genderBackend === 'P' ? 'Perempuan' : '';
+
         setForm({
           namaLengkap: res.data?.namaLengkap || '',
           nik: res.data?.nik || '',
           nomorkk: res.data?.nomorkk || '',
-          nomorhp: res.data?.nomorhp || '',
+          nomorhp: res.data?.nomorWA || '', // Sesuai dengan key yang dikirim oleh backend controller
           username: res.data?.username || '',
           alamat: res.data?.alamat || '',
           rt: res.data?.rt || '',
           rw: res.data?.rw || '',
-          jenisKelamin: res.data?.jenisKelamin || '',
+          jenisKelamin: jenisKelaminForm,
           tempatLahir: res.data?.tempatLahir || '',
           tanggalLahir: res.data?.tanggalLahir || '',
           email: res.data?.email || '',
@@ -86,11 +91,11 @@ const ProfilSaya: React.FC = () => {
         namaLengkap: form.namaLengkap,
         username: form.username,
         nomorkk: form.nomorkk,
-        nomorhp: form.nomorhp,
+        nomorWA: form.nomorhp, // DIUBAH: Dikirim sebagai 'nomorWA' agar lolos validasi FormRequest Laravel
         alamat: form.alamat,
         rt: form.rt,
         rw: form.rw,
-        jenisKelamin: form.jenisKelamin,
+        jenisKelamin: form.jenisKelamin === 'Laki-laki' ? 'L' : 'P', // DIUBAH: Konversi string ke inisial 'L'/'P' sebelum dikirim
         tempatLahir: form.tempatLahir,
         tanggalLahir: form.tanggalLahir,
         email: form.email || null,
@@ -160,8 +165,7 @@ const ProfilSaya: React.FC = () => {
               type="text"
               name="nomorkk"
               value={form.nomorkk}
-              onChange={handleChange}
-              disabled={fetching}
+              readOnly
               className="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-500 rounded-xl outline-none cursor-not-allowed"
             />
             <p className="text-xs text-gray-400 mt-1">Nomor Kartu Keluarga tidak dapat diubah secara mandiri. Hubungi admin desa jika ada kesalahan.</p>
@@ -193,13 +197,6 @@ const ProfilSaya: React.FC = () => {
                     ? 'Nomor HP minimal 10 digit'
                     : 'Contoh: 081234567890'}
               </p>
-              <span className={`text-xs font-medium ${form.nomorhp.length >= 10 && form.nomorhp.length <= 13
-                ? 'text-green-500'
-                : form.nomorhp.length > 0
-                  ? 'text-red-500'
-                  : 'text-gray-400'
-                }`}>
-              </span>
             </div>
           </div>
 

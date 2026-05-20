@@ -209,13 +209,13 @@ const ManajemenStrukturDesa: React.FC = () => {
       if (editItem) {
         // Update — use POST with _method for Laravel
         formData.append('_method', 'PUT');
-        await api.post(`/struktur-desa/${editItem.id}`, formData, {
+        await api.post(`/admin/struktur-desa/${editItem.id}`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
         showToast('Data struktur desa berhasil diperbarui', 'success');
       } else {
         // Create
-        await api.post('/struktur-desa', formData, {
+        await api.post('/admin/struktur-desa', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
         showToast('Data struktur desa berhasil ditambahkan', 'success');
@@ -236,7 +236,7 @@ const ManajemenStrukturDesa: React.FC = () => {
     if (!deleteId) return;
     setDeleteLoading(true);
     try {
-      await api.delete(`/struktur-desa/${deleteId}`);
+      await api.delete(`/admin/struktur-desa/${deleteId}`);
       showToast('Data berhasil dihapus', 'success');
       setConfirmOpen(false);
       fetchData();
