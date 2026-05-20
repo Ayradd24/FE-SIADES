@@ -289,7 +289,13 @@ const DataWarga: React.FC = () => {
             <thead>
               <tr className="bg-blue-400 text-white">
                 {['No', 'Nama Lengkap', 'Nomor WA', 'L/P', 'Alamat', 'RT/RW', 'Aksi'].map((h) => (
-                  <th key={h} className={`px-4 py-3 text-sm font-semibold whitespace-nowrap ${h === 'Aksi' ? 'text-center' : 'text-left'}`}>{h}</th>
+                  <th 
+                    key={h} 
+                    className={`px-4 py-3 text-sm font-semibold whitespace-nowrap ${h === 'Aksi' ? 'text-center' : 'text-left'}`}
+                    style={{ textAlign: h === 'Aksi' ? 'center' : 'left' }}
+                  >
+                    {h}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -326,8 +332,8 @@ const DataWarga: React.FC = () => {
                     <td className="px-4 py-3 text-sm text-gray-600">
                       {warga.rt || warga.rw ? `RT ${warga.rt || '-'} / RW ${warga.rw || '-'}` : '-'}
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-center gap-2">
+                    <td className="px-4 py-3 text-center">
+                      <div className="w-full flex items-center justify-center gap-2">
                         {/* View */}
                         <button onClick={() => openDetail(warga)} className="w-8 h-8 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg flex items-center justify-center transition-colors" title="Detail">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

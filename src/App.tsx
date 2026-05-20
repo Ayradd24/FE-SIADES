@@ -159,9 +159,9 @@ function LandingPage() {
     <div className="font-sans">
       {/* NAVBAR */}
       <div className="flex justify-between items-center px-8 py-4 bg-white shadow">
-        <div className="flex items-center gap-3">
-          <img src={logo} className="w-10 h-10" alt="Logo Desa" />
-          <span className="font-semibold text-blue-800">Desa Karangasem</span>
+        <div className="flex items-center gap-4">
+          <img src={logo} className="w-14 h-14 object-contain" alt="Logo Desa" />
+          <span className="text-2xl font-extrabold text-[#1e3a5f]">Desa Karangasem</span>
         </div>
         <a href="/login">
           <button className="bg-blue-400 text-white px-5 py-1 rounded-full hover:bg-blue-500 transition-colors">
