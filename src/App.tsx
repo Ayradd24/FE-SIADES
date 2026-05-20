@@ -13,6 +13,7 @@ import DataWarga from "./pages/admin/DataWarga";
 import PersetujuanSurat from "./pages/admin/PersetujuanSurat";
 import ManajemenKatalog from "./pages/admin/ManajemenKatalog";
 import ManajemenPerangkat from "./pages/admin/ManajemenPerangkat";
+import ManajemenStrukturDesa from "./pages/admin/ManajemenStrukturDesa";
 import StrukturDesa from "./pages/StrukturDesa";
 import KatalogJasa from "./pages/KatalogJasa";
 import AdminLayout from "./components/layout/AdminLayout";
@@ -267,6 +268,7 @@ function AppRoutes() {
           />
           <Route path="/admin/manajemen-perangkat" element={<ManajemenPerangkat />} />
           <Route path="/admin/struktur-desa" element={<StrukturDesa />} />
+          <Route path="/admin/manajemen-struktur-desa" element={<ManajemenStrukturDesa />} />
         </Route>
       </Route>
 
