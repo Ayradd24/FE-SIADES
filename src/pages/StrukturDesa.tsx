@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import bg from '../assets/sawah-bg.png';
 import api, { BASE_URL } from '../lib/api';
 
@@ -27,10 +27,11 @@ function PersonCard({
 }) {
   const iconSize = size === 'large' ? 'w-24 h-24' : 'w-20 h-20';
   const cardPadding = size === 'large' ? 'px-8 py-6' : 'px-6 py-5';
+  const cardWidth = size === 'large' ? 'w-64' : 'w-52';
 
   return (
     <div
-      className={`bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg ${cardPadding} flex flex-col items-center 
+      className={`bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg ${cardPadding} ${cardWidth} flex flex-col items-center 
         transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-white`}
     >
       <div
@@ -110,8 +111,15 @@ function WhatsAppButton({ wa }: { wa: string }) {
   );
 }
 
+const getRwNumber = (jabatan: string) => {
+  const rwMatch = jabatan.match(/RW\s*(\d+)/i);
+  return rwMatch ? rwMatch[1] : '';
+};
+
 export default function StrukturDesa() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isAdmin = location.pathname.startsWith('/admin');
   const [struktur, setStruktur] = useState<StrukturDesaItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -147,7 +155,12 @@ export default function StrukturDesa() {
   );
 
   const ketuaRW = useMemo(
-    () => struktur.filter((o) => o.jabatan.toLowerCase().includes('rw')),
+    () =>
+      struktur.filter(
+        (o) =>
+          o.jabatan.toLowerCase().includes('rw') &&
+          !o.jabatan.toLowerCase().includes('rt')
+      ),
     [struktur]
   );
 
@@ -159,25 +172,37 @@ export default function StrukturDesa() {
   const [selectedRWIdx, setSelectedRWIdx] = useState(0);
   const currentRW = ketuaRW[selectedRWIdx] ?? null;
 
-  // Reset RT selection when RW changes
+  const activeRwNumber = useMemo(() => {
+    return currentRW ? getRwNumber(currentRW.jabatan) : '';
+  }, [currentRW]);
+
+  const filteredRT = useMemo(() => {
+    if (!activeRwNumber) return ketuaRT;
+    return ketuaRT.filter((rt) => getRwNumber(rt.jabatan) === activeRwNumber);
+  }, [ketuaRT, activeRwNumber]);
+
   const [selectedRTIdx, setSelectedRTIdx] = useState(0);
-  const currentRT = ketuaRT[selectedRTIdx] ?? null;
+  const currentRT = filteredRT[selectedRTIdx] ?? null;
 
   // Reset selectedRWIdx if data changes
   useEffect(() => {
     setSelectedRWIdx(0);
+  }, [ketuaRW.length]);
+
+  // Reset selectedRTIdx if filtered RT options change
+  useEffect(() => {
     setSelectedRTIdx(0);
-  }, [ketuaRW.length, ketuaRT.length]);
+  }, [filteredRT.length]);
 
   if (loading) {
     return (
       <div
-        className="font-sans -m-8 min-h-screen flex items-center justify-center relative"
+        className={`font-sans min-h-screen flex items-center justify-center relative overflow-x-hidden ${isAdmin ? '-m-8' : ''}`}
         style={{
           backgroundImage: `url(${bg})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
-          backgroundAttachment: 'fixed',
+          backgroundAttachment: 'scroll',
         }}
       >
         <div className="absolute inset-0 bg-blue-900/55 pointer-events-none" />
@@ -191,31 +216,36 @@ export default function StrukturDesa() {
 
   return (
     <div
-      className="font-sans -m-8 min-h-screen flex flex-col relative"
+      className={`font-sans min-h-screen flex flex-col relative overflow-x-hidden ${isAdmin ? '-m-8' : ''}`}
       style={{
         backgroundImage: `url(${bg})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
-        backgroundAttachment: 'fixed',
+        backgroundAttachment: 'scroll',
       }}
     >
       {/* Single overlay for the entire page */}
       <div className="absolute inset-0 bg-blue-900/55 pointer-events-none" />
 
-      {/* ── KEPALA DESA SECTION ── */}
-      <section className="relative py-10 px-4">
-        <div className="relative max-w-5xl mx-auto">
+      {/* Home Button (only public route) */}
+      {!isAdmin && (
+        <div className="relative max-w-5xl mx-auto w-full px-4 pt-8 pb-0 z-10">
           <button
             onClick={() => navigate('/')}
-            className="flex items-center gap-1.5 text-white bg-blue-600/80 hover:bg-blue-600 backdrop-blur-sm 
-              px-4 py-1.5 rounded-full text-sm font-medium mb-6 transition-all duration-200 shadow-lg"
+            className="flex items-center gap-1.5 bg-blue-400 hover:bg-blue-500 text-white
+              px-5 py-1 rounded-full text-sm font-medium transition-colors shadow"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
             Home
           </button>
+        </div>
+      )}
 
+      {/* ── KEPALA DESA SECTION ── */}
+      <section className={`relative ${isAdmin ? 'pt-16' : 'pt-4'} pb-10 px-4`}>
+        <div className="relative max-w-5xl mx-auto">
           <h1 className="text-center text-3xl md:text-4xl font-extrabold text-white tracking-wide mb-10 drop-shadow-lg">
             STRUKTUR PEMERINTAH DESA
           </h1>
@@ -278,7 +308,9 @@ export default function StrukturDesa() {
               <DropdownSelector
                 options={ketuaRW.map((rw, idx) => ({
                   value: idx,
-                  label: `Ketua RW — ${rw.nama}`,
+                  label: rw.jabatan.toLowerCase().startsWith('ketua') 
+                    ? rw.jabatan.replace(/^Ketua\s+/i, '') 
+                    : rw.jabatan,
                 }))}
                 value={selectedRWIdx}
                 onChange={(val) => setSelectedRWIdx(val)}
@@ -289,7 +321,7 @@ export default function StrukturDesa() {
               <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
                 <PersonCard
                   nama={currentRW.nama}
-                  jabatan={currentRW.jabatan}
+                  jabatan={currentRW.jabatan.replace(/^Ketua\s+/i, '')}
                   foto={currentRW.foto}
                 />
                 <div className="flex flex-col justify-center gap-3">
@@ -307,24 +339,24 @@ export default function StrukturDesa() {
       )}
 
       {/* Divider */}
-      {ketuaRT.length > 0 && (
+      {filteredRT.length > 0 && (
         <div className="relative mx-auto w-full max-w-5xl px-4">
           <div className="border-t border-white/20" />
         </div>
       )}
 
       {/* ── RT SECTION ── */}
-      {ketuaRT.length > 0 && (
+      {filteredRT.length > 0 && (
         <section className="relative py-10 px-4 flex-1">
           <div className="relative max-w-5xl mx-auto">
             <div className="mb-6">
               <DropdownSelector
-                options={ketuaRT.map((rt, idx) => ({
+                options={filteredRT.map((rt, idx) => ({
                   value: idx,
-                  label: `Ketua RT — ${rt.nama}`,
+                  label: rt.jabatan.replace(/^Ketua\s+/i, '').replace(/RW\s*\d+/i, '').trim(),
                 }))}
                 value={selectedRTIdx}
-                onChange={setSelectedRTIdx}
+                onChange={(val) => setSelectedRTIdx(val)}
               />
             </div>
 
@@ -332,7 +364,7 @@ export default function StrukturDesa() {
               <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
                 <PersonCard
                   nama={currentRT.nama}
-                  jabatan={currentRT.jabatan}
+                  jabatan={currentRT.jabatan.replace(/^Ketua\s+/i, '').replace(/RW\s*\d+/i, '').trim()}
                   foto={currentRT.foto}
                 />
                 <div className="flex flex-col justify-center gap-3">
