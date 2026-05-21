@@ -51,6 +51,8 @@ function sortByJabatan(a: StrukturDesaItem, b: StrukturDesaItem): number {
 }
 
 const storageBaseUrl = BASE_URL.replace(/\/api$/, '') + '/storage/';
+const MAX_IMAGE_SIZE_BYTES = 2 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png'];
 
 const ManajemenStrukturDesa: React.FC = () => {
   const { toasts, showToast, removeToast } = useToast();
@@ -196,11 +198,31 @@ const ManajemenStrukturDesa: React.FC = () => {
   };
 
   const handleFotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFotoFile(file);
-      setFotoPreview(URL.createObjectURL(file));
+    const file = e.target.files?.[0] ?? null;
+    if (!file) {
+      setFotoFile(null);
+      setFotoPreview(null);
+      return;
     }
+
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      showToast('Foto harus berformat JPG atau PNG', 'error');
+      setFotoFile(null);
+      setFotoPreview(null);
+      e.target.value = '';
+      return;
+    }
+
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      showToast('Ukuran foto maksimal 2 MB', 'error');
+      setFotoFile(null);
+      setFotoPreview(null);
+      e.target.value = '';
+      return;
+    }
+
+    setFotoFile(file);
+    setFotoPreview(URL.createObjectURL(file));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -472,7 +494,7 @@ const ManajemenStrukturDesa: React.FC = () => {
               <div className="flex-1">
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/png,image/jpeg,image/jpg"
                   onChange={handleFotoChange}
                   className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
                 />

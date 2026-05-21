@@ -35,6 +35,9 @@ const initialForm: KatalogForm = {
   gambar: null,
 };
 
+const MAX_IMAGE_SIZE_BYTES = 2 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png'];
+
 const formatNumberId = (value: string) => {
   const numeric = Number(value || '0');
   return numeric.toLocaleString('id-ID');
@@ -67,8 +70,48 @@ const KatalogJasaWarga: React.FC = () => {
     fetchKatalog();
   }, [fetchKatalog]);
 
+  const handleGambarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    if (!file) {
+      setForm((prev) => ({ ...prev, gambar: null }));
+      return;
+    }
+
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      showToast('Foto jasa harus berformat JPG atau PNG', 'error');
+      setForm((prev) => ({ ...prev, gambar: null }));
+      e.target.value = '';
+      return;
+    }
+
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      showToast('Ukuran foto jasa maksimal 2 MB', 'error');
+      setForm((prev) => ({ ...prev, gambar: null }));
+      e.target.value = '';
+      return;
+    }
+
+    setForm((prev) => ({ ...prev, gambar: file }));
+  };
+
+  const handleKontakWaChange = (value: string) => {
+    const digitsOnly = value.replace(/\D/g, '');
+    if (digitsOnly.length <= 13) {
+      setForm((prev) => ({ ...prev, kontak_wa: digitsOnly }));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (
+      form.kontak_wa
+      && (!form.kontak_wa.startsWith('08') || form.kontak_wa.length < 10 || form.kontak_wa.length > 13)
+    ) {
+      showToast('Kontak WhatsApp harus diawali 08 dan terdiri dari 10-13 digit', 'error');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -274,10 +317,26 @@ const KatalogJasaWarga: React.FC = () => {
               <input
                 type="text"
                 value={form.kontak_wa}
-                onChange={(e) => setForm((prev) => ({ ...prev, kontak_wa: e.target.value }))}
+                onChange={(e) => handleKontakWaChange(e.target.value)}
                 placeholder="08xxxxxxxxxx"
-                className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition-all"
+                maxLength={13}
+                className={`w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition-all ${
+                  form.kontak_wa && (!form.kontak_wa.startsWith('08') || form.kontak_wa.length < 10)
+                    ? 'border-red-400'
+                    : 'border-gray-300'
+                }`}
               />
+              <p className={`text-xs mt-1 ${
+                form.kontak_wa && (!form.kontak_wa.startsWith('08') || form.kontak_wa.length < 10)
+                  ? 'text-red-500'
+                  : 'text-gray-500'
+              }`}>
+                {form.kontak_wa && !form.kontak_wa.startsWith('08')
+                  ? 'Nomor harus diawali 08'
+                  : form.kontak_wa && form.kontak_wa.length < 10
+                    ? 'Minimal 10 digit'
+                    : 'Contoh: 081234567890'}
+              </p>
             </div>
           </div>
 
@@ -286,7 +345,7 @@ const KatalogJasaWarga: React.FC = () => {
             <input
               type="file"
               accept="image/png,image/jpeg,image/jpg"
-              onChange={(e) => setForm((prev) => ({ ...prev, gambar: e.target.files?.[0] ?? null }))}
+              onChange={handleGambarChange}
               className="block w-full text-sm text-gray-500
                 file:mr-4 file:py-2 file:px-4
                 file:rounded-xl file:border-0

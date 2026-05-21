@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import logoDesaImg from '../../assets/logo-desa.png';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { authStorage } from '../../lib/authStorage';
+import api, { BASE_URL } from '../../lib/api';
 
 interface NavItem {
   label: string;
@@ -60,10 +61,33 @@ const navItems: NavItem[] = [
   { label: 'Struktur Desa', path: '/admin/manajemen-struktur-desa', icon: <StructureIcon /> },
 ];
 
+const storageBaseUrl = BASE_URL.replace(/\/api$/, '') + '/storage/';
+
 const Sidebar: React.FC = () => {
   const navigate = useNavigate();
   const currentRole = authStorage.getRole();
+  const roleLabel = currentRole === 'super-admin' ? 'KADES' : 'ADMIN';
   const [confirmLogoutOpen, setConfirmLogoutOpen] = React.useState(false);
+  const [profilePhoto, setProfilePhoto] = React.useState<string | null>(authStorage.getProfilePhoto());
+
+  React.useEffect(() => {
+    const syncProfilePhoto = () => {
+      setProfilePhoto(authStorage.getProfilePhoto());
+    };
+
+    api.get('/warga/profile')
+      .then((res) => {
+        const nextPhoto = res.data?.profilePhoto || null;
+        authStorage.setProfilePhoto(nextPhoto);
+        setProfilePhoto(nextPhoto);
+      })
+      .catch(() => {
+        syncProfilePhoto();
+      });
+
+    window.addEventListener('siades-profile-photo-updated', syncProfilePhoto);
+    return () => window.removeEventListener('siades-profile-photo-updated', syncProfilePhoto);
+  }, []);
 
   const filteredNavItems = currentRole === 'super-admin'
     ? [...navItems, { label: 'Manajemen Perangkat', path: '/admin/manajemen-perangkat', icon: <UsersIcon /> }]
@@ -79,15 +103,23 @@ const Sidebar: React.FC = () => {
       {/* Profile Area */}
       <div className="flex flex-col items-center py-6 px-4 border-b border-blue-100">
         <div className="w-20 h-20 rounded-2xl bg-blue-200 flex items-center justify-center mb-3 overflow-hidden">
-          <svg className="w-12 h-12 text-[#1e3a5f]" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
-          </svg>
+          {profilePhoto ? (
+            <img
+              src={`${storageBaseUrl}${profilePhoto}`}
+              alt={authStorage.getName() || 'Admin SIADES'}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <svg className="w-12 h-12 text-[#1e3a5f]" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
+            </svg>
+          )}
         </div>
         <span className="font-bold text-[#1e3a5f] text-sm">
           {authStorage.getName() || 'Admin SIADES'}
         </span>
         <span className="text-xs font-bold text-[#1e3a5f] uppercase tracking-widest mt-0.5">
-          KADES
+          {roleLabel}
         </span>
       </div>
 

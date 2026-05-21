@@ -112,16 +112,16 @@ const DataWarga: React.FC = () => {
   const openEdit = (warga: Warga) => {
     setEditData(warga);
     setForm({
-      namaLengkap: warga.namaLengkap,
-      nomorWA: warga.nomorWA,
+      namaLengkap: warga.namaLengkap ?? '',
+      nomorWA: warga.nomorWA ?? '',
       jenisKelamin: warga.jenisKelamin === '-' ? '' : warga.jenisKelamin,
-      alamat: warga.alamat,
-      rt: warga.rt,
-      rw: warga.rw,
-      nik: warga.nik || '',
-      tempatLahir: warga.tempatLahir || '',
-      tanggalLahir: warga.tanggalLahir || '',
-      email: warga.email || '',
+      alamat: warga.alamat ?? '',
+      rt: warga.rt ?? '',
+      rw: warga.rw ?? '',
+      nik: warga.nik ?? '',
+      tempatLahir: warga.tempatLahir ?? '',
+      tanggalLahir: warga.tanggalLahir ?? '',
+      email: warga.email ?? '',
     });
     setModalOpen(true);
   };

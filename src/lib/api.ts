@@ -13,12 +13,50 @@ const api = axios.create({
   timeout: 15000,
 });
 
+const publicEndpointPrefixes = [
+  '/katalog',
+  '/struktur-desa',
+  '/login',
+  '/register',
+  '/forgot-password',
+  '/verify-reset-otp',
+  '/reset-password',
+];
+
+const publicPagePaths = [
+  '/',
+  '/login',
+  '/admin/login',
+  '/register',
+  '/lupa-password',
+  '/verifikasi-otp',
+  '/ganti-password',
+  '/struktur-desa',
+  '/katalog-jasa',
+];
+
+const isPublicEndpoint = (url?: string) => {
+  if (!url) return false;
+
+  const rawPath = url.startsWith(BASE_URL)
+    ? url.slice(BASE_URL.length)
+    : url;
+  const path = rawPath.split('?')[0];
+
+  return publicEndpointPrefixes.some((prefix) =>
+    path === prefix || path.startsWith(`${prefix}/`)
+  );
+};
+
+const isPublicPage = (path: string) => (
+  publicPagePaths.includes(path)
+);
 
 // Request interceptor — inject token
 api.interceptors.request.use(
   (config) => {
     const token = authStorage.getToken();
-    if (token) {
+    if (token && !isPublicEndpoint(config.url)) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -30,9 +68,14 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const currentPath = window.location.pathname;
+
+    if (
+      error.response?.status === 401
+      && !isPublicEndpoint(error.config?.url)
+      && !isPublicPage(currentPath)
+    ) {
       const role = authStorage.getRole();
-      const currentPath = window.location.pathname;
       const loginPath = currentPath.startsWith('/admin') || role === 'admin' || role === 'super-admin'
         ? '/admin/login'
         : '/login';
