@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, Link } from "react-router-dom";
 import logo from "./assets/logo-desa.png";
 import bg from "./assets/sawah-bg.png";
 import api, { BASE_URL } from "./lib/api";
+import { authStorage } from "./lib/authStorage";
 import LoginAdmin from "./pages/admin/LoginAdmin";
 import LupaPassword from "./pages/LupaPassword";
 import VerifikasiOTP from "./pages/VerifikasiOTP";
@@ -52,15 +53,21 @@ function StrukturPreview() {
   const [items, setItems] = useState<StrukturPreviewItem[]>([]);
   const [loading, setLoading] = useState(true);
   const storageBase = useMemo(() => BASE_URL.replace(/\/api$/, '') + '/storage/', []);
+  const getPreviewColumnClass = (jabatan: string) => {
+    const lower = jabatan.toLowerCase();
+    if (lower === 'kepala desa') return 'sm:col-start-2';
+    if (lower === 'bendahara desa') return 'sm:col-start-3';
+    return 'sm:col-start-1';
+  };
 
   useEffect(() => {
     api.get('/struktur-desa')
       .then((res) => {
         const all = (res.data?.data ?? res.data ?? []) as StrukturPreviewItem[];
-        // Show top 3: Kepala Desa first, then Sekretaris, then Bendahara
+        // Show Sekretaris left, Kepala Desa center, Bendahara right.
         const order: Record<string, number> = {
-          'kepala desa': 0,
-          'sekretaris desa': 1,
+          'sekretaris desa': 0,
+          'kepala desa': 1,
           'bendahara desa': 2,
         };
         const top = all
@@ -78,7 +85,7 @@ function StrukturPreview() {
       <h2 className="text-xl font-bold text-blue-800 mb-8">
         STRUKTUR PEMERINTAH DESA
       </h2>
-      <div className="flex justify-center gap-6 flex-wrap">
+      <div className="mx-auto grid max-w-4xl grid-cols-1 justify-items-center gap-6 sm:grid-cols-3">
         {loading ? (
           Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="bg-white p-5 rounded-xl w-52 shadow animate-pulse">
@@ -91,7 +98,7 @@ function StrukturPreview() {
           <p className="text-gray-500">Belum ada data struktur desa</p>
         ) : (
           items.map((item) => (
-            <div key={item.id} className="bg-white p-5 rounded-xl w-52 shadow hover:shadow-md transition-shadow">
+            <div key={item.id} className={`bg-white p-5 rounded-xl w-52 shadow hover:shadow-md transition-shadow ${getPreviewColumnClass(item.jabatan)}`}>
               <div className="w-16 h-16 bg-blue-200 mx-auto rounded-full mb-2 overflow-hidden flex items-center justify-center">
                 {item.foto ? (
                   <img src={`${storageBase}${item.foto}`} alt={item.nama} className="w-full h-full object-cover" />
@@ -121,6 +128,11 @@ function LandingPage() {
   const [loadingKatalog, setLoadingKatalog] = useState(true);
   const POLL_INTERVAL_MS = 15000;
   const storageBaseUrl = useMemo(() => BASE_URL.replace(/\/api$/, "") + "/storage/", []);
+  const token = authStorage.getToken();
+  const role = authStorage.getRole();
+  const dashboardPath = role === "admin" || role === "super-admin"
+    ? "/admin/dashboard"
+    : "/warga/dashboard";
 
   const fetchPreviewKatalog = useCallback(async (isInitial = false) => {
     if (isInitial) setLoadingKatalog(true);
@@ -163,11 +175,11 @@ function LandingPage() {
           <img src={logo} className="w-14 h-14 object-contain" alt="Logo Desa" />
           <span className="text-2xl font-extrabold text-[#1e3a5f]">Desa Karangasem</span>
         </div>
-        <a href="/login">
+        <Link to={token ? dashboardPath : "/login"}>
           <button className="bg-blue-400 text-white px-5 py-1 rounded-full hover:bg-blue-500 transition-colors">
-            Masuk
+            {token ? "Dashboard" : "Masuk"}
           </button>
-        </a>
+        </Link>
       </div>
 
       {/* HERO */}

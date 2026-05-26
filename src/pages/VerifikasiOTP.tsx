@@ -24,7 +24,11 @@ interface VerifyOTPErrors {
 const VerifikasiOTP: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { nomorHP = '', debugOtp = null } = (location.state as { nomorHP?: string; debugOtp?: string | null }) || {};
+  const { nomorHP = '', nik = '', debugOtp = null } = (location.state as {
+    nomorHP?: string;
+    nik?: string;
+    debugOtp?: string | null;
+  }) || {};
 
   const [otp, setOtp] = useState<string[]>(Array(6).fill(''));
   const [errors, setErrors] = useState<VerifyOTPErrors>({});
@@ -49,12 +53,12 @@ const VerifikasiOTP: React.FC = () => {
 
   // Auto-focus first input on mount
   useEffect(() => {
-    if (!nomorHP) {
+    if (!nomorHP || !nik) {
       navigate('/lupa-password', { replace: true });
       return;
     }
     inputRefs.current[0]?.focus();
-  }, [nomorHP, navigate]);
+  }, [nomorHP, nik, navigate]);
 
   const handleChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return; // hanya angka
@@ -102,7 +106,7 @@ const VerifikasiOTP: React.FC = () => {
     setErrors({});
 
     try {
-      await api.post('/forgot-password', { no_telp: nomorHP });
+      await api.post('/forgot-password', { no_telp: nomorHP, nik });
       setCountdown(60);
       setCanResend(false);
       setOtp(Array(6).fill(''));
@@ -155,7 +159,7 @@ const VerifikasiOTP: React.FC = () => {
 
       // 4. Jika token aman, baru pindah ke halaman ganti password
       navigate('/ganti-password', {
-        state: { nomorHP, resetToken },
+        state: { nomorHP, nik, resetToken },
       });
       
     } catch (error: unknown) {

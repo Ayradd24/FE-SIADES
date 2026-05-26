@@ -6,8 +6,8 @@ import ToastContainer from '../../components/ui/Toast';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import Modal from '../../components/ui/Modal';
 import { useToast } from '../../hooks/useToast';
-import PdfPreviewModal from '../../components/modals/PdfPreviewModal';
-import SignatureModal from '../../components/modals/SignatureModal';
+import PdfPreviewModal, { type PdfOverlayAsset, type PdfOverlayPlacement } from '../../components/modals/PdfPreviewModal';
+import SignatureModal, { type ApprovalAssets } from '../../components/modals/SignatureModal';
 import { useAuth } from '../../hooks/useAuth';
 import { PDFDocument } from 'pdf-lib';
 
@@ -56,7 +56,7 @@ const PersetujuanSurat: React.FC = () => {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSignOpen, setIsSignOpen] = useState(false);
   const [selectedSurat, setSelectedSurat] = useState<PermohonanSurat | null>(null);
-  const [tempSignatureUrl, setTempSignatureUrl] = useState<string | null>(null);
+  const [approvalAssets, setApprovalAssets] = useState<ApprovalAssets | null>(null);
   const [jenisSuratList, setJenisSuratList] = useState<JenisSuratItem[]>([]);
   const [newJenisSurat, setNewJenisSurat] = useState('');
   const [addingJenisSurat, setAddingJenisSurat] = useState(false);
@@ -126,18 +126,36 @@ const PersetujuanSurat: React.FC = () => {
       setActionLoading(null);
       setIsSignOpen(false);
       setIsPreviewOpen(false);
-      setTempSignatureUrl(null);
+      setApprovalAssets(null);
     }
   };
 
-  const handleConfirmSignature = (signatureDataUrl: string) => {
-    setTempSignatureUrl(signatureDataUrl);
+  const handleConfirmSignature = (assets: ApprovalAssets) => {
+    setApprovalAssets(assets);
     setIsSignOpen(false);
     setIsPreviewOpen(true);
   };
 
-  const handleFinalApprove = async (position: { x: number; y: number; page: number; scale: number }) => {
-    if (!selectedSurat || !tempSignatureUrl) return;
+  const readImageBytes = async (imageUrl: string) => {
+    if (imageUrl.startsWith('data:')) {
+      const [metadata, base64] = imageUrl.split(',');
+      return {
+        bytes: Uint8Array.from(atob(base64), c => c.charCodeAt(0)),
+        contentType: metadata.includes('image/jpeg') || metadata.includes('image/jpg') ? 'image/jpeg' : 'image/png',
+      };
+    }
+
+    const imageResponse = await fetch(imageUrl);
+    if (!imageResponse.ok) throw new Error('Gagal mengambil gambar tanda tangan atau stempel');
+
+    return {
+      bytes: new Uint8Array(await imageResponse.arrayBuffer()),
+      contentType: imageResponse.headers.get('content-type') || '',
+    };
+  };
+
+  const handleFinalApprove = async (placements: PdfOverlayPlacement[]) => {
+    if (!selectedSurat || !approvalAssets || placements.length === 0) return;
     
     setActionLoading(selectedSurat.id);
     try {
@@ -153,36 +171,28 @@ const PersetujuanSurat: React.FC = () => {
       // 2. Load the PDF with pdf-lib
       const pdfDoc = await PDFDocument.load(existingPdfBytes);
       const pages = pdfDoc.getPages();
-      const targetPage = pages[position.page - 1] || pages[pages.length - 1];
+      // 3. Embed each selected overlay image
+      for (const placement of placements) {
+        const targetPage = pages[placement.pageIndex] || pages[pages.length - 1];
+        const { bytes, contentType } = await readImageBytes(placement.imageUrl);
+        const image = contentType.includes('jpeg') || contentType.includes('jpg') || placement.imageUrl.toLowerCase().match(/\.(jpe?g)(\?|$)/)
+          ? await pdfDoc.embedJpg(bytes)
+          : await pdfDoc.embedPng(bytes);
 
-      // 3. Embed the signature image
-      let signatureImageBytes: ArrayBuffer;
-      if (tempSignatureUrl.startsWith('data:')) {
-        const base64 = tempSignatureUrl.split(',')[1];
-        signatureImageBytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0)).buffer;
-      } else {
-        const sigResponse = await fetch(tempSignatureUrl);
-        if (!sigResponse.ok) throw new Error("Gagal mengambil gambar tanda tangan");
-        signatureImageBytes = await sigResponse.arrayBuffer();
+        const { width: pdfWidth, height: pdfHeight } = targetPage.getSize();
+        const overlayWidth = placement.widthRatio * pdfWidth;
+        const overlayHeight = placement.heightRatio * pdfHeight;
+        const x = placement.xRatio * pdfWidth;
+        const y = pdfHeight - (placement.yRatio * pdfHeight) - overlayHeight;
+
+        targetPage.drawImage(image, {
+          x,
+          y,
+          width: overlayWidth,
+          height: overlayHeight,
+          opacity: placement.type === 'stamp' ? 0.6 : 1,
+        });
       }
-
-      const signatureImage = await pdfDoc.embedPng(signatureImageBytes);
-      const signatureDims = signatureImage.scale(0.25 * position.scale); // Base 0.25 × user scale from resize controls
-
-      // 4. Calculate Coordinates
-      const { width: pdfWidth, height: pdfHeight } = targetPage.getSize();
-      
-      // pdf-lib origin is bottom-left
-      // DOM relative position is top-left
-      const x = position.x * pdfWidth;
-      const y = pdfHeight - (position.y * pdfHeight) - (signatureDims.height);
-
-      targetPage.drawImage(signatureImage, {
-        x,
-        y,
-        width: signatureDims.width,
-        height: signatureDims.height,
-      });
 
       // 5. Save and Upload
       const pdfBytes = await pdfDoc.save();
@@ -456,11 +466,24 @@ const PersetujuanSurat: React.FC = () => {
         isOpen={isPreviewOpen}
         onClose={() => {
           setIsPreviewOpen(false);
-          setTempSignatureUrl(null);
+          setApprovalAssets(null);
         }}
-        title={`${tempSignatureUrl ? 'Posisikan Tanda Tangan' : 'Detail File'}: ${selectedSurat?.jenis_surat || 'Surat'}`}
-        mode={tempSignatureUrl ? 'sign' : 'view'}
-        signatureUrl={tempSignatureUrl}
+        title={`${approvalAssets ? (approvalAssets.stampUrl ? 'Posisikan Tanda Tangan & Stempel' : 'Posisikan Tanda Tangan') : 'Detail File'}: ${selectedSurat?.jenis_surat || 'Surat'}`}
+        mode={approvalAssets ? 'sign' : 'view'}
+        overlays={approvalAssets ? ([
+          {
+            id: 'signature' as const,
+            type: 'signature' as const,
+            label: 'Tanda Tangan',
+            imageUrl: approvalAssets.signatureUrl,
+          },
+          ...(approvalAssets.stampUrl ? [{
+            id: 'stamp' as const,
+            type: 'stamp' as const,
+            label: 'Stempel',
+            imageUrl: approvalAssets.stampUrl,
+          }] : []),
+        ] satisfies PdfOverlayAsset[]) : []}
         onApprove={handleFinalApprove}
         fileUrl={selectedSurat?.file_path 
           ? `${BASE_URL.replace(/\/api$/, '')}/storage/${selectedSurat.file_path}` 
