@@ -1,14 +1,22 @@
-import React, { useEffect, useState } from 'react';
-import api from '../../lib/api';
+import React, { useEffect, useRef, useState } from 'react';
+import api, { BASE_URL } from '../../lib/api';
 import Button from '../../components/ui/Button';
 import ToastContainer from '../../components/ui/Toast';
 import { useToast } from '../../hooks/useToast';
 import { authStorage } from '../../lib/authStorage';
 
+const MAX_PROFILE_PHOTO_SIZE_BYTES = 2 * 1024 * 1024;
+const ALLOWED_PROFILE_PHOTO_TYPES = ['image/jpeg', 'image/png'];
+const storageBaseUrl = BASE_URL.replace(/\/api$/, '') + '/storage/';
+
 const ProfilSaya: React.FC = () => {
   const { toasts, showToast, removeToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(authStorage.getProfilePhoto());
+  const [photoPreviewOpen, setPhotoPreviewOpen] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
   const [form, setForm] = useState({
     namaLengkap: '',
     nik: '',
@@ -16,8 +24,6 @@ const ProfilSaya: React.FC = () => {
     nomorhp: '',
     username: '',
     alamat: '',
-    rt: '',
-    rw: '',
     jenisKelamin: '',
     tempatLahir: '',
     tanggalLahir: '',
@@ -43,20 +49,26 @@ const ProfilSaya: React.FC = () => {
       setFetching(true);
       try {
         const res = await api.get('/warga/profile');
+        
+        // PETA DATA: Konversi "L" atau "P" dari backend ke teks panjang untuk Form Dropdown
+        const genderBackend = res.data?.jenisKelamin || '';
+        const jenisKelaminForm = genderBackend === 'L' ? 'Laki-laki' : genderBackend === 'P' ? 'Perempuan' : '';
+
         setForm({
           namaLengkap: res.data?.namaLengkap || '',
           nik: res.data?.nik || '',
           nomorkk: res.data?.nomorkk || '',
-          nomorhp: res.data?.nomorhp || '',
+          nomorhp: res.data?.nomorWA || '', // Sesuai dengan key yang dikirim oleh backend controller
           username: res.data?.username || '',
           alamat: res.data?.alamat || '',
-          rt: res.data?.rt || '',
-          rw: res.data?.rw || '',
-          jenisKelamin: res.data?.jenisKelamin || '',
+          jenisKelamin: jenisKelaminForm,
           tempatLahir: res.data?.tempatLahir || '',
           tanggalLahir: res.data?.tanggalLahir || '',
           email: res.data?.email || '',
         });
+
+        setProfilePhoto(res.data?.profilePhoto || null);
+        authStorage.setProfilePhoto(res.data?.profilePhoto || null);
       } catch {
         showToast('Gagal memuat profil', 'error');
       } finally {
@@ -67,11 +79,58 @@ const ProfilSaya: React.FC = () => {
     fetchProfile();
   }, [showToast]);
 
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    if (!file) return;
+
+    if (!ALLOWED_PROFILE_PHOTO_TYPES.includes(file.type)) {
+      showToast('Foto profil harus berformat JPG atau PNG', 'error');
+      e.target.value = '';
+      return;
+    }
+
+    if (file.size > MAX_PROFILE_PHOTO_SIZE_BYTES) {
+      showToast('Ukuran foto profil maksimal 2 MB', 'error');
+      e.target.value = '';
+      return;
+    }
+
+    setPhotoUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('profile_photo', file);
+      const res = await api.post('/warga/profile/photo', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const nextPhoto = res.data?.profilePhoto || null;
+      setProfilePhoto(nextPhoto);
+      authStorage.setProfilePhoto(nextPhoto);
+      window.dispatchEvent(new Event('siades-profile-photo-updated'));
+      showToast('Foto profil berhasil diperbarui', 'success');
+    } catch (err: any) {
+      const firstValidation = err?.response?.data?.errors
+        ? Object.values(err.response.data.errors)[0]
+        : null;
+      const message = Array.isArray(firstValidation)
+        ? firstValidation[0]
+        : err?.response?.data?.message || 'Gagal mengunggah foto profil';
+      showToast(String(message), 'error');
+    } finally {
+      setPhotoUploading(false);
+      e.target.value = '';
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (form.nomorhp && (form.nomorhp.length < 10 || form.nomorhp.length > 13 || !form.nomorhp.startsWith('08'))) {
       showToast('Nomor HP harus diawali 08 dan terdiri dari 10-13 digit', 'error');
+      return;
+    }
+
+    if (!form.alamat.trim()) {
+      showToast('Alamat wajib diisi', 'error');
       return;
     }
 
@@ -86,11 +145,9 @@ const ProfilSaya: React.FC = () => {
         namaLengkap: form.namaLengkap,
         username: form.username,
         nomorkk: form.nomorkk,
-        nomorhp: form.nomorhp,
+        nomorWA: form.nomorhp, // DIUBAH: Dikirim sebagai 'nomorWA' agar lolos validasi FormRequest Laravel
         alamat: form.alamat,
-        rt: form.rt,
-        rw: form.rw,
-        jenisKelamin: form.jenisKelamin,
+        jenisKelamin: form.jenisKelamin === 'Laki-laki' ? 'L' : 'P', // DIUBAH: Konversi string ke inisial 'L'/'P' sebelum dikirim
         tempatLahir: form.tempatLahir,
         tanggalLahir: form.tanggalLahir,
         email: form.email || null,
@@ -118,14 +175,41 @@ const ProfilSaya: React.FC = () => {
         <p className="text-gray-500 mb-8">Kelola informasi data diri Anda.</p>
 
         <div className="flex flex-col items-center mb-8">
-          <div className="w-24 h-24 bg-blue-200 rounded-full flex items-center justify-center text-blue-800 shadow-sm">
-            <svg className="w-14 h-14" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
-            </svg>
-          </div>
-          <button className="mt-3 text-sm font-semibold text-blue-500 hover:text-blue-700 transition-colors">
-            Ubah Foto Profil
+          <button
+            type="button"
+            onClick={() => profilePhoto && setPhotoPreviewOpen(true)}
+            disabled={!profilePhoto}
+            className="w-24 h-24 bg-blue-200 rounded-full flex items-center justify-center text-blue-800 shadow-sm overflow-hidden disabled:cursor-default focus:outline-none focus:ring-2 focus:ring-blue-300"
+            title={profilePhoto ? 'Lihat foto profil' : undefined}
+          >
+            {profilePhoto ? (
+              <img
+                src={`${storageBaseUrl}${profilePhoto}`}
+                alt="Foto profil"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <svg className="w-14 h-14" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
+              </svg>
+            )}
           </button>
+          <input
+            ref={photoInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/jpg"
+            onChange={handlePhotoChange}
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => photoInputRef.current?.click()}
+            disabled={fetching || photoUploading}
+            className="mt-3 text-sm font-semibold text-blue-500 hover:text-blue-700 transition-colors disabled:text-gray-400"
+          >
+            {photoUploading ? 'Mengunggah...' : 'Ubah Foto Profil'}
+          </button>
+          <p className="text-xs text-gray-400 mt-1">JPG/PNG, maksimal 2 MB</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -160,8 +244,7 @@ const ProfilSaya: React.FC = () => {
               type="text"
               name="nomorkk"
               value={form.nomorkk}
-              onChange={handleChange}
-              disabled={fetching}
+              readOnly
               className="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-500 rounded-xl outline-none cursor-not-allowed"
             />
             <p className="text-xs text-gray-400 mt-1">Nomor Kartu Keluarga tidak dapat diubah secara mandiri. Hubungi admin desa jika ada kesalahan.</p>
@@ -193,13 +276,6 @@ const ProfilSaya: React.FC = () => {
                     ? 'Nomor HP minimal 10 digit'
                     : 'Contoh: 081234567890'}
               </p>
-              <span className={`text-xs font-medium ${form.nomorhp.length >= 10 && form.nomorhp.length <= 13
-                ? 'text-green-500'
-                : form.nomorhp.length > 0
-                  ? 'text-red-500'
-                  : 'text-gray-400'
-                }`}>
-              </span>
             </div>
           </div>
 
@@ -217,43 +293,17 @@ const ProfilSaya: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-[#1e3a5f] mb-1">Alamat Lengkap</label>
+            <label className="block text-sm font-semibold text-[#1e3a5f] mb-1">Alamat Lengkap<span className="text-red-500">*</span></label>
             <textarea
               name="alamat"
               rows={3}
               value={form.alamat}
               onChange={handleChange}
+              required
               placeholder="Alamat lengkap"
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all"
+              className={`w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all ${!form.alamat.trim() && form.alamat !== undefined ? 'border-red-400' : 'border-gray-300'}`}
               disabled={fetching}
             ></textarea>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-[#1e3a5f] mb-1">RT</label>
-              <input
-                type="text"
-                name="rt"
-                value={form.rt}
-                onChange={handleChange}
-                disabled={fetching}
-                placeholder="001"
-                className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-[#1e3a5f] mb-1">RW</label>
-              <input
-                type="text"
-                name="rw"
-                value={form.rw}
-                onChange={handleChange}
-                disabled={fetching}
-                placeholder="001"
-                className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all"
-              />
-            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -328,6 +378,32 @@ const ProfilSaya: React.FC = () => {
           </div>
         </form>
       </div>
+
+      {photoPreviewOpen && profilePhoto && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6"
+          onClick={() => setPhotoPreviewOpen(false)}
+        >
+          <div
+            className="relative max-h-full max-w-3xl overflow-hidden rounded-2xl bg-white p-3 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setPhotoPreviewOpen(false)}
+              className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow hover:bg-white"
+              aria-label="Tutup preview foto"
+            >
+              x
+            </button>
+            <img
+              src={`${storageBaseUrl}${profilePhoto}`}
+              alt="Preview foto profil"
+              className="max-h-[80vh] w-auto max-w-full rounded-xl object-contain"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

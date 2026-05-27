@@ -1,12 +1,13 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import SignatureCanvas from 'react-signature-canvas';
-import { X, RotateCcw, Check, Image as ImageIcon, Trash2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Check, Image as ImageIcon, RotateCcw, Stamp, Trash2, Upload, X } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import signatureService from '../../lib/signatureService';
 import type { AdminSignature } from '../../lib/signatureService';
+import stampService from '../../lib/stampService';
+import type { AdminStamp } from '../../lib/stampService';
 import { BASE_URL } from '../../lib/api';
 
-// Robust import handling for CommonJS interop in Vite
 type SignatureCanvasLike = {
   clear?: () => void;
   isEmpty?: () => boolean;
@@ -29,105 +30,226 @@ if (typeof SignatureCanvasComponent !== 'function' && signatureCanvasModule.Sign
   SignatureCanvasComponent = signatureCanvasModule.SignatureCanvas;
 }
 
+export interface ApprovalAssets {
+  signatureUrl: string;
+  stampUrl?: string;
+}
+
 interface SignatureModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (signatureDataUrl: string) => void;
+  onConfirm: (assets: ApprovalAssets) => void;
   title: string;
 }
+
+const storageBaseUrl = `${BASE_URL.replace(/\/api$/, '')}/storage/`;
 
 const SignatureModal: React.FC<SignatureModalProps> = ({ isOpen, onClose, onConfirm, title }) => {
   const sigPad = useRef<SignatureCanvasLike | null>(null);
   const [savedSignatures, setSavedSignatures] = useState<AdminSignature[]>([]);
+  const [savedStamps, setSavedStamps] = useState<AdminStamp[]>([]);
+  const [selectedSignatureUrl, setSelectedSignatureUrl] = useState('');
+  const [selectedSignatureId, setSelectedSignatureId] = useState<number | null>(null);
+  const [selectedStampUrl, setSelectedStampUrl] = useState('');
+  const [selectedStampId, setSelectedStampId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [uploadingStamp, setUploadingStamp] = useState(false);
   const [saveForLater, setSaveForLater] = useState(false);
   const [signatureName, setSignatureName] = useState('');
-  const [activeTab, setActiveTab] = useState<'draw' | 'saved'>('draw');
+  const [stampName, setStampName] = useState('');
+  const [stampFile, setStampFile] = useState<File | null>(null);
+  const [activeTab, setActiveTab] = useState<'signature' | 'stamp'>('signature');
 
-  const fetchSignatures = async () => {
+  const fetchAssets = async () => {
     try {
       setIsLoading(true);
-      const data = await signatureService.getAll();
-      setSavedSignatures(data);
-      if (data.length > 0) {
-        setActiveTab('saved');
+      
+      try {
+        const signatures = await signatureService.getAll();
+        setSavedSignatures(signatures);
+      } catch (err) {
+        console.error('Failed to fetch signatures:', err);
+      }
+
+      try {
+        const stamps = await stampService.getAll();
+        setSavedStamps(stamps);
+      } catch (err) {
+        console.error('Failed to fetch stamps:', err);
       }
     } catch (err) {
-      console.error('Failed to fetch signatures:', err);
+      console.error('Failed to fetch approval assets:', err);
     } finally {
       setIsLoading(false);
     }
   };
 
   const clear = () => {
-    if (sigPad.current) {
-      const instance = sigPad.current.instance || sigPad.current;
-      if (typeof instance.clear === 'function') {
-        instance.clear();
-      }
+    const instance = sigPad.current?.instance || sigPad.current;
+    if (typeof instance?.clear === 'function') {
+      instance.clear();
     }
   };
 
-  const handleSaveNew = async () => {
+  const getDrawnSignatureDataUrl = () => {
+    const instance = sigPad.current?.instance || sigPad.current;
+    if (!instance) return null;
+
+    if (typeof instance.isEmpty === 'function' && instance.isEmpty()) {
+      return null;
+    }
+
+    const canvas = typeof instance.getTrimmedCanvas === 'function'
+      ? instance.getTrimmedCanvas()
+      : instance.getCanvas?.() || instance.canvas;
+
+    return canvas?.toDataURL('image/png') || null;
+  };
+
+  const handleUseDrawnSignature = async () => {
     try {
-      if (!sigPad.current) return;
-      const instance = sigPad.current.instance || sigPad.current;
-      
-      if (typeof instance.isEmpty === 'function' && instance.isEmpty()) {
+      const dataUrl = getDrawnSignatureDataUrl();
+      if (!dataUrl) {
         alert('Silakan buat tanda tangan terlebih dahulu');
         return;
       }
-      
-      let canvas = null;
-      if (typeof instance.getTrimmedCanvas === 'function') {
-        canvas = instance.getTrimmedCanvas();
-      } else {
-        canvas = instance.getCanvas ? instance.getCanvas() : instance.canvas;
-      }
-
-      if (!canvas) throw new Error('Failed to get canvas');
-
-      const dataUrl = canvas.toDataURL('image/png');
 
       if (saveForLater) {
-        if (!signatureName) {
+        if (!signatureName.trim()) {
           alert('Berikan nama untuk tanda tangan yang akan disimpan');
           return;
         }
         setIsLoading(true);
-        await signatureService.store(signatureName, dataUrl);
-        setIsLoading(false);
-      }
+        const newSig = await signatureService.store(signatureName.trim(), dataUrl);
+        await fetchAssets();
+        setSignatureName('');
+        setSaveForLater(false);
 
-      onConfirm(dataUrl);
+        // Automatically select the newly saved signature via base64
+        const base64Data = await signatureService.getImageData(newSig.id);
+        setSelectedSignatureUrl(base64Data);
+        setSelectedSignatureId(newSig.id);
+      } else {
+        setSelectedSignatureUrl(dataUrl);
+        setSelectedSignatureId(null);
+      }
     } catch (err) {
       console.error('Error saving signature:', err);
       alert('Gagal menyimpan tanda tangan');
+    } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSelectSaved = async (sig: AdminSignature) => {
-    // Construct full URL using the same base logic as the images in the list
-    const storageBaseUrl = BASE_URL.replace('/api', '') + '/storage/';
-    const fullUrl = `${storageBaseUrl}${sig.file_path}`;
-    onConfirm(fullUrl);
+  const handleSelectSavedSignature = async (sig: AdminSignature) => {
+    try {
+      setIsLoading(true);
+      const base64Data = await signatureService.getImageData(sig.id);
+      setSelectedSignatureUrl(base64Data);
+      setSelectedSignatureId(sig.id);
+    } catch (err) {
+      console.error('Failed to fetch signature image data:', err);
+      alert('Gagal memuat detail gambar tanda tangan');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleDeleteSaved = async (e: React.MouseEvent, id: number) => {
+  const handleDeleteSavedSignature = async (e: React.MouseEvent, id: number) => {
     e.stopPropagation();
     if (!confirm('Hapus tanda tangan ini?')) return;
     try {
       await signatureService.delete(id);
-      setSavedSignatures(prev => prev.filter(s => s.id !== id));
+      setSavedSignatures((prev) => prev.filter((sig) => sig.id !== id));
+      if (selectedSignatureId === id) {
+        setSelectedSignatureUrl('');
+        setSelectedSignatureId(null);
+      }
     } catch {
       alert('Gagal menghapus tanda tangan');
     }
   };
 
+  const handleUploadStamp = async () => {
+    if (!stampName.trim()) {
+      alert('Berikan nama untuk stempel');
+      return;
+    }
+    if (!stampFile) {
+      alert('Pilih file stempel terlebih dahulu');
+      return;
+    }
+
+    try {
+      setUploadingStamp(true);
+      const stamp = await stampService.store(stampName.trim(), stampFile);
+      setSavedStamps((prev) => [stamp, ...prev]);
+
+      // Automatically select the newly uploaded stamp via base64
+      const base64Data = await stampService.getImageData(stamp.id);
+      setSelectedStampUrl(base64Data);
+      setSelectedStampId(stamp.id);
+
+      setStampName('');
+      setStampFile(null);
+    } catch (err: any) {
+      alert(err?.response?.data?.message || 'Gagal mengunggah stempel');
+    } finally {
+      setUploadingStamp(false);
+    }
+  };
+
+  const handleSelectSavedStamp = async (stamp: AdminStamp) => {
+    if (selectedStampId === stamp.id) {
+      setSelectedStampUrl('');
+      setSelectedStampId(null);
+      return;
+    }
+    try {
+      setIsLoading(true);
+      const base64Data = await stampService.getImageData(stamp.id);
+      setSelectedStampUrl(base64Data);
+      setSelectedStampId(stamp.id);
+    } catch (err) {
+      console.error('Failed to fetch stamp image data:', err);
+      alert('Gagal memuat detail gambar stempel');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteStamp = async (e: React.MouseEvent, id: number) => {
+    e.stopPropagation();
+    if (!confirm('Hapus stempel ini?')) return;
+    try {
+      await stampService.delete(id);
+      setSavedStamps((prev) => prev.filter((stamp) => stamp.id !== id));
+      if (selectedStampId === id) {
+        setSelectedStampUrl('');
+        setSelectedStampId(null);
+      }
+    } catch {
+      alert('Gagal menghapus stempel');
+    }
+  };
+
+  const handleConfirm = () => {
+    if (!selectedSignatureUrl) {
+      alert('Pilih atau buat tanda tangan terlebih dahulu');
+      setActiveTab('signature');
+      return;
+    }
+    onConfirm({ signatureUrl: selectedSignatureUrl, stampUrl: selectedStampUrl || undefined });
+  };
+
   useEffect(() => {
     if (isOpen) {
-      void fetchSignatures();
+      setActiveTab('signature');
+      setSelectedSignatureUrl('');
+      setSelectedSignatureId(null);
+      setSelectedStampUrl('');
+      setSelectedStampId(null);
+      void fetchAssets();
     }
   }, [isOpen]);
 
@@ -139,141 +261,232 @@ const SignatureModal: React.FC<SignatureModalProps> = ({ isOpen, onClose, onConf
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-3xl shadow-2xl w-full max-w-xl flex flex-col overflow-hidden border border-gray-100"
+            className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden border border-gray-100"
           >
             <div className="flex items-center justify-between px-8 py-6 border-b">
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
-                <p className="text-sm text-gray-500">Kelola tanda tangan digital Anda</p>
+                <p className="text-sm text-gray-500">Pilih tanda tangan, lalu tambahkan stempel jika diperlukan</p>
               </div>
-              <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+              <button type="button" onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                 <X className="w-6 h-6 text-gray-400" />
               </button>
             </div>
 
             <div className="flex border-b bg-gray-50/50">
               <button
-                onClick={() => setActiveTab('draw')}
+                type="button"
+                onClick={() => setActiveTab('signature')}
                 className={`flex-1 py-4 text-sm font-bold flex items-center justify-center gap-2 transition-all ${
-                  activeTab === 'draw' ? 'text-blue-600 border-b-2 border-blue-600 bg-white' : 'text-gray-500 hover:text-gray-700'
+                  activeTab === 'signature' ? 'text-blue-600 border-b-2 border-blue-600 bg-white' : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
-                <RotateCcw className="w-4 h-4" /> Gambar Baru
+                <ImageIcon className="w-4 h-4" /> Tanda Tangan {selectedSignatureUrl ? '(Dipilih)' : ''}
               </button>
               <button
-                onClick={() => setActiveTab('saved')}
+                type="button"
+                onClick={() => setActiveTab('stamp')}
                 className={`flex-1 py-4 text-sm font-bold flex items-center justify-center gap-2 transition-all ${
-                  activeTab === 'saved' ? 'text-blue-600 border-b-2 border-blue-600 bg-white' : 'text-gray-500 hover:text-gray-700'
+                  activeTab === 'stamp' ? 'text-blue-600 border-b-2 border-blue-600 bg-white' : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
-                <ImageIcon className="w-4 h-4" /> Tersimpan ({savedSignatures.length})
+                <Stamp className="w-4 h-4" /> Stempel Opsional {selectedStampUrl ? '(Dipilih)' : ''}
               </button>
             </div>
-            
-            <div className="p-8 min-h-[300px]">
-              {activeTab === 'draw' ? (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                  <div className="border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50 overflow-hidden h-56 relative group">
-                    <SignatureCanvasComponent
-                      ref={(ref: unknown) => { sigPad.current = ref as SignatureCanvasLike | null; }}
-                      penColor="#1e293b"
-                      canvasProps={{ className: "w-full h-full cursor-crosshair" }}
-                    />
-                    <button
-                      onClick={clear}
-                      className="absolute bottom-4 right-4 p-2.5 bg-white shadow-lg border border-gray-100 rounded-xl text-gray-500 hover:text-red-500 transition-all flex items-center gap-2 text-xs font-bold"
-                    >
-                      <RotateCcw className="w-4 h-4" /> Reset
-                    </button>
-                  </div>
 
-                  <div className="mt-6 space-y-4">
-                    <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-2xl border border-blue-100">
-                      <input
-                        type="checkbox"
-                        id="saveLater"
-                        checked={saveForLater}
-                        onChange={(e) => setSaveForLater(e.target.checked)}
-                        className="w-5 h-5 rounded-lg border-blue-300 text-blue-600 focus:ring-blue-500"
+            <div className="p-8 overflow-auto">
+              {activeTab === 'signature' ? (
+                <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
+                  <div>
+                    <p className="text-sm font-bold text-gray-700 mb-3">Gambar tanda tangan baru</p>
+                    <div className="border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50 overflow-hidden h-56 relative group">
+                      <SignatureCanvasComponent
+                        ref={(ref: unknown) => { sigPad.current = ref as SignatureCanvasLike | null; }}
+                        penColor="#1e293b"
+                        canvasProps={{ className: 'w-full h-full cursor-crosshair' }}
                       />
-                      <label htmlFor="saveLater" className="text-sm font-semibold text-blue-900 cursor-pointer">
-                        Simpan tanda tangan ini untuk penggunaan berikutnya
-                      </label>
+                      <button
+                        type="button"
+                        onClick={clear}
+                        className="absolute bottom-4 right-4 p-2.5 bg-white shadow-lg border border-gray-100 rounded-xl text-gray-500 hover:text-red-500 transition-all flex items-center gap-2 text-xs font-bold"
+                      >
+                        <RotateCcw className="w-4 h-4" /> Reset
+                      </button>
                     </div>
 
-                    {saveForLater && (
-                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1"> Nama Tanda Tangan </label>
+                    <div className="mt-5 space-y-4">
+                      <label className="flex items-center gap-3 p-4 bg-blue-50 rounded-2xl border border-blue-100">
+                        <input
+                          type="checkbox"
+                          checked={saveForLater}
+                          onChange={(e) => setSaveForLater(e.target.checked)}
+                          className="w-5 h-5 rounded-lg border-blue-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm font-semibold text-blue-900">Simpan tanda tangan ini untuk penggunaan berikutnya</span>
+                      </label>
+
+                      {saveForLater && (
                         <input
                           type="text"
                           value={signatureName}
                           onChange={(e) => setSignatureName(e.target.value)}
-                          placeholder="Contoh: Tanda Tangan Utama"
+                          placeholder="Nama tanda tangan"
                           className="w-full px-5 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
                         />
-                      </motion.div>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={handleUseDrawnSignature}
+                        disabled={isLoading}
+                        className="w-full px-5 py-3 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 disabled:opacity-50 transition-all"
+                      >
+                        Gunakan Tanda Tangan Ini
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-bold text-gray-700 mb-3">Tanda tangan tersimpan</p>
+                    {isLoading ? (
+                      <div className="py-12 text-center text-sm font-medium text-gray-500">Memuat tanda tangan...</div>
+                    ) : savedSignatures.length > 0 ? (
+                      <div className="grid grid-cols-2 gap-4">
+                        {savedSignatures.map((sig) => {
+                          const url = `${storageBaseUrl}${sig.file_path}`;
+                          const selected = selectedSignatureId === sig.id;
+                          return (
+                            <button
+                              key={sig.id}
+                              type="button"
+                              onClick={() => handleSelectSavedSignature(sig)}
+                              className={`group relative border-2 rounded-2xl p-4 bg-white hover:border-blue-500 hover:shadow-xl transition-all text-left ${
+                                selected ? 'border-blue-500 shadow-lg' : 'border-gray-100'
+                              }`}
+                            >
+                              <div className="h-24 flex items-center justify-center bg-gray-50 rounded-xl mb-3 overflow-hidden">
+                                <img src={url} alt={sig.signature_name} className="max-h-full max-w-full object-contain" />
+                              </div>
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="text-xs font-bold text-gray-700 truncate">{sig.signature_name}</p>
+                                <span
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={(e) => handleDeleteSavedSignature(e, sig.id)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') handleDeleteSavedSignature(e as unknown as React.MouseEvent, sig.id);
+                                  }}
+                                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="py-12 text-center text-sm font-medium text-gray-500">Belum ada tanda tangan tersimpan</div>
                     )}
                   </div>
-                </motion.div>
+                </div>
               ) : (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-                  {isLoading ? (
-                    <div className="flex flex-col items-center justify-center py-12">
-                      <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                      <p className="mt-4 text-sm text-gray-500 font-medium">Memuat tanda tangan...</p>
+                <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+                  <div>
+                    <p className="text-sm font-bold text-gray-700 mb-3">Unggah stempel baru</p>
+                    <div className="space-y-4 rounded-2xl border border-gray-100 bg-gray-50 p-5">
+                      <input
+                        type="text"
+                        value={stampName}
+                        onChange={(e) => setStampName(e.target.value)}
+                        placeholder="Nama stempel"
+                        className="w-full px-5 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                      />
+                      <label className="block rounded-2xl border-2 border-dashed border-gray-200 bg-white p-5 text-center cursor-pointer hover:border-blue-400 transition-colors">
+                        <Upload className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+                        <span className="block text-sm font-bold text-gray-700">{stampFile ? stampFile.name : 'Pilih file PNG transparan'}</span>
+                        <span className="block text-xs text-gray-400 mt-1">PNG saja, maksimal 2 MB</span>
+                        <input
+                          type="file"
+                          accept="image/png,.png"
+                          className="hidden"
+                          onChange={(e) => setStampFile(e.target.files?.[0] || null)}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleUploadStamp}
+                        disabled={uploadingStamp}
+                        className="w-full px-5 py-3 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 disabled:opacity-50 transition-all"
+                      >
+                        {uploadingStamp ? 'Mengunggah...' : 'Unggah & Gunakan Stempel'}
+                      </button>
                     </div>
-                  ) : savedSignatures.length > 0 ? (
-                    <div className="grid grid-cols-2 gap-4">
-                      {savedSignatures.map((sig) => (
-                        <div
-                          key={sig.id}
-                          onClick={() => handleSelectSaved(sig)}
-                          className="group relative border-2 border-gray-100 rounded-2xl p-4 bg-white hover:border-blue-500 hover:shadow-xl transition-all cursor-pointer"
-                        >
-                          <div className="h-24 flex items-center justify-center bg-gray-50 rounded-xl mb-3 overflow-hidden">
-                            <img src={`${BASE_URL.replace('/api', '')}/storage/${sig.file_path}`} alt={sig.signature_name} className="max-h-full max-w-full object-contain" />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <p className="text-xs font-bold text-gray-700 truncate">{sig.signature_name}</p>
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-bold text-gray-700 mb-3">Stempel tersimpan</p>
+                    {isLoading ? (
+                      <div className="py-12 text-center text-sm font-medium text-gray-500">Memuat stempel...</div>
+                    ) : savedStamps.length > 0 ? (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {savedStamps.map((stamp) => {
+                          const url = `${storageBaseUrl}${stamp.file_path}`;
+                          const selected = selectedStampId === stamp.id;
+                          return (
                             <button
-                              onClick={(e) => handleDeleteSaved(e, sig.id)}
-                              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                              key={stamp.id}
+                              type="button"
+                              onClick={() => handleSelectSavedStamp(stamp)}
+                              className={`group relative border-2 rounded-2xl p-4 bg-white hover:border-blue-500 hover:shadow-xl transition-all text-left ${
+                                selected ? 'border-blue-500 shadow-lg' : 'border-gray-100'
+                              }`}
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <div className="h-28 flex items-center justify-center bg-gray-50 rounded-xl mb-3 overflow-hidden">
+                                <img src={url} alt={stamp.stamp_name} className="max-h-full max-w-full object-contain" />
+                              </div>
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="text-xs font-bold text-gray-700 truncate">{stamp.stamp_name}</p>
+                                <span
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={(e) => handleDeleteStamp(e, stamp.id)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') handleDeleteStamp(e as unknown as React.MouseEvent, stamp.id);
+                                  }}
+                                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </span>
+                              </div>
                             </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-12 text-center">
-                      <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                        <ImageIcon className="w-8 h-8 text-gray-300" />
+                          );
+                        })}
                       </div>
-                      <p className="text-gray-500 font-medium">Belum ada tanda tangan tersimpan</p>
-                      <button onClick={() => setActiveTab('draw')} className="mt-2 text-blue-600 font-bold text-sm hover:underline">Buat baru sekarang</button>
-                    </div>
-                  )}
-                </motion.div>
+                    ) : (
+                      <div className="py-12 text-center text-sm font-medium text-gray-500">Belum ada stempel tersimpan</div>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
 
             <div className="px-8 py-6 border-t bg-gray-50/50 flex gap-4">
               <button
+                type="button"
                 onClick={onClose}
                 className="px-6 py-3.5 bg-white border border-gray-200 text-gray-600 font-bold rounded-2xl hover:bg-gray-50 transition-all flex-1 shadow-sm"
               >
                 Batal
               </button>
-              {activeTab === 'draw' && (
-                <button
-                  onClick={handleSaveNew}
-                  disabled={isLoading}
-                  className="px-6 py-3.5 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 disabled:opacity-50 transition-all flex-[2] shadow-lg shadow-blue-200 flex items-center justify-center gap-2"
-                >
-                  {isLoading ? 'Menyimpan...' : <><Check className="w-5 h-5" /> Gunakan & Simpan</>}
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={handleConfirm}
+                disabled={!selectedSignatureUrl}
+                className="px-6 py-3.5 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-[2] shadow-lg shadow-blue-200 flex items-center justify-center gap-2"
+              >
+                <Check className="w-5 h-5" /> Lanjut Posisikan
+              </button>
             </div>
           </motion.div>
         </div>

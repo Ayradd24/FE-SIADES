@@ -12,9 +12,8 @@ interface Warga {
   nomorWA: string;
   jenisKelamin: 'L' | 'P' | '-';
   alamat: string;
-  rt: string;
-  rw: string;
   nik?: string;
+  nomorKK?: string;
   tempatLahir?: string;
   tanggalLahir?: string;
   email?: string;
@@ -26,9 +25,8 @@ interface WargaForm {
   nomorWA: string;
   jenisKelamin: '' | 'L' | 'P';
   alamat: string;
-  rt: string;
-  rw: string;
   nik: string;
+  nomorKK: string;
   tempatLahir: string;
   tanggalLahir: string;
   email: string;
@@ -39,9 +37,8 @@ const emptyForm: WargaForm = {
   nomorWA: '',
   jenisKelamin: '',
   alamat: '',
-  rt: '',
-  rw: '',
   nik: '',
+  nomorKK: '',
   tempatLahir: '',
   tanggalLahir: '',
   email: '',
@@ -50,10 +47,10 @@ const emptyForm: WargaForm = {
 const ITEMS_PER_PAGE = 10;
 
 const MOCK_WARGA: Warga[] = [
-  { id: 1, namaLengkap: 'Herman Sumanto', nomorWA: '0812123123', jenisKelamin: 'L', alamat: 'Jl. Sigur No 14', rt: '002', rw: '005' },
-  { id: 2, namaLengkap: 'Surti Siti', nomorWA: '0811288288', jenisKelamin: 'P', alamat: 'Jl. Ijen No 7', rt: '009', rw: '003' },
-  { id: 3, namaLengkap: 'Budi Santoso', nomorWA: '0813445566', jenisKelamin: 'L', alamat: 'Jl. Mawar No 3', rt: '001', rw: '002' },
-  { id: 4, namaLengkap: 'Sri Wahyuni', nomorWA: '0857112233', jenisKelamin: 'P', alamat: 'Jl. Melati No 5', rt: '004', rw: '001' },
+  { id: 1, namaLengkap: 'Herman Sumanto', nomorWA: '0812123123', jenisKelamin: 'L', alamat: 'Jl. Sigur No 14', nomorKK: '3509012345670001' },
+  { id: 2, namaLengkap: 'Surti Siti', nomorWA: '0811288288', jenisKelamin: 'P', alamat: 'Jl. Ijen No 7', nomorKK: '3509012345670002' },
+  { id: 3, namaLengkap: 'Budi Santoso', nomorWA: '0813445566', jenisKelamin: 'L', alamat: 'Jl. Mawar No 3', nomorKK: '3509012345670003' },
+  { id: 4, namaLengkap: 'Sri Wahyuni', nomorWA: '0857112233', jenisKelamin: 'P', alamat: 'Jl. Melati No 5', nomorKK: '3509012345670004' },
 ];
 
 const DataWarga: React.FC = () => {
@@ -64,8 +61,7 @@ const DataWarga: React.FC = () => {
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
-  const [filterRT, setFilterRT] = useState('');
-  const [filterRW, setFilterRW] = useState('');
+
 
   const [modalOpen, setModalOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -80,7 +76,7 @@ const DataWarga: React.FC = () => {
     setLoading(true);
     try {
       const res = await api.get('/admin/users', {
-        params: { page, limit: ITEMS_PER_PAGE, search, rt: filterRT, rw: filterRW },
+        params: { page, limit: ITEMS_PER_PAGE, search },
       });
       setData(res.data?.data || res.data);
       setTotalData(res.data?.total || res.data?.length || 0);
@@ -90,7 +86,7 @@ const DataWarga: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, search, filterRT, filterRW]);
+  }, [page, search]);
 
 
   useEffect(() => { fetchWarga(); }, [fetchWarga]);
@@ -112,16 +108,15 @@ const DataWarga: React.FC = () => {
   const openEdit = (warga: Warga) => {
     setEditData(warga);
     setForm({
-      namaLengkap: warga.namaLengkap,
-      nomorWA: warga.nomorWA,
+      namaLengkap: warga.namaLengkap ?? '',
+      nomorWA: warga.nomorWA ?? '',
       jenisKelamin: warga.jenisKelamin === '-' ? '' : warga.jenisKelamin,
-      alamat: warga.alamat,
-      rt: warga.rt,
-      rw: warga.rw,
-      nik: warga.nik || '',
-      tempatLahir: warga.tempatLahir || '',
-      tanggalLahir: warga.tanggalLahir || '',
-      email: warga.email || '',
+      alamat: warga.alamat ?? '',
+      nik: warga.nik ?? '',
+      nomorKK: warga.nomorKK ?? '',
+      tempatLahir: warga.tempatLahir ?? '',
+      tanggalLahir: warga.tanggalLahir ?? '',
+      email: warga.email ?? '',
     });
     setModalOpen(true);
   };
@@ -249,26 +244,7 @@ const DataWarga: React.FC = () => {
             className="input-field pl-10"
           />
         </div>
-        <select
-          value={filterRT}
-          onChange={(e) => { setFilterRT(e.target.value); setPage(1); }}
-          className="input-field w-32"
-        >
-          <option value="">Semua RT</option>
-          {['001', '002', '003', '004', '005', '006', '007', '008', '009'].map((rt) => (
-            <option key={rt} value={rt}>RT {rt}</option>
-          ))}
-        </select>
-        <select
-          value={filterRW}
-          onChange={(e) => { setFilterRW(e.target.value); setPage(1); }}
-          className="input-field w-32"
-        >
-          <option value="">Semua RW</option>
-          {['001', '002', '003', '004', '005'].map((rw) => (
-            <option key={rw} value={rw}>RW {rw}</option>
-          ))}
-        </select>
+
         <Button
           variant="primary"
           onClick={openCreate}
@@ -288,9 +264,9 @@ const DataWarga: React.FC = () => {
           <table className="w-full">
             <thead>
               <tr className="bg-blue-400 text-white">
-                {['No', 'Nama Lengkap', 'Nomor WA', 'L/P', 'Alamat', 'RT/RW', 'Aksi'].map((h) => (
-                  <th 
-                    key={h} 
+                {['No', 'Nama Lengkap', 'Nomor WA', 'L/P', 'Alamat', 'Aksi'].map((h) => (
+                  <th
+                    key={h}
                     className={`px-4 py-3 text-sm font-semibold whitespace-nowrap ${h === 'Aksi' ? 'text-center' : 'text-left'}`}
                     style={{ textAlign: h === 'Aksi' ? 'center' : 'left' }}
                   >
@@ -303,7 +279,7 @@ const DataWarga: React.FC = () => {
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} className="border-b border-gray-100 animate-pulse">
-                    {Array.from({ length: 7 }).map((__, j) => (
+                    {Array.from({ length: 6 }).map((__, j) => (
                       <td key={j} className="px-4 py-3">
                         <div className="h-4 bg-gray-200 rounded w-full" />
                       </td>
@@ -312,7 +288,7 @@ const DataWarga: React.FC = () => {
                 ))
               ) : data.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-12 text-gray-400 text-sm">
+                  <td colSpan={6} className="text-center py-12 text-gray-400 text-sm">
                     Tidak ada data warga ditemukan
                   </td>
                 </tr>
@@ -328,10 +304,7 @@ const DataWarga: React.FC = () => {
                         {warga.jenisKelamin}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600 max-w-[200px] truncate" title={warga.alamat}>{warga.alamat}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
-                      {warga.rt || warga.rw ? `RT ${warga.rt || '-'} / RW ${warga.rw || '-'}` : '-'}
-                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600 max-w-[200px] truncate" title={warga.alamat}>{warga.alamat || '-'}</td>
                     <td className="px-4 py-3 text-center">
                       <div className="w-full flex items-center justify-center gap-2">
                         {/* View */}
@@ -393,7 +366,7 @@ const DataWarga: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Lengkap *</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Lengkap</label>
               <input required className="input-field" placeholder="Nama lengkap warga" value={form.namaLengkap} onChange={(e) => setForm({ ...form, namaLengkap: e.target.value })} />
             </div>
             <div>
@@ -401,7 +374,16 @@ const DataWarga: React.FC = () => {
               <input required className="input-field" placeholder="16 digit NIK" maxLength={16} value={form.nik} onChange={(e) => setForm({ ...form, nik: e.target.value })} />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Nomor WA *</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">No. Kartu Keluarga</label>
+              <input required className="input-field" placeholder="16 digit No. KK" maxLength={16} value={form.nomorKK} onChange={(e) => {
+                const digitsOnly = e.target.value.replace(/\D/g, '');
+                if (digitsOnly.length <= 16) {
+                  setForm({ ...form, nomorKK: digitsOnly });
+                }
+              }} />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Nomor WA</label>
               <input
                 required
                 className={`input-field transition-all ${form.nomorWA && (!form.nomorWA.startsWith('08') || form.nomorWA.length < 10)
@@ -447,15 +429,7 @@ const DataWarga: React.FC = () => {
 
             <div className="col-span-2">
               <label className="block text-sm font-semibold text-gray-700 mb-1">Alamat</label>
-              <textarea className="input-field" placeholder="Alamat lengkap" rows={3} value={form.alamat} onChange={(e) => setForm({ ...form, alamat: e.target.value })} />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">RT</label>
-              <input className="input-field" placeholder="001" maxLength={3} value={form.rt} onChange={(e) => setForm({ ...form, rt: e.target.value })} />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">RW</label>
-              <input className="input-field" placeholder="001" maxLength={3} value={form.rw} onChange={(e) => setForm({ ...form, rw: e.target.value })} />
+              <textarea required className="input-field" placeholder="Alamat lengkap" rows={3} value={form.alamat} onChange={(e) => setForm({ ...form, alamat: e.target.value })} />
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Jenis Kelamin</label>
@@ -507,9 +481,9 @@ const DataWarga: React.FC = () => {
             <div><span className="font-semibold text-gray-700">Nama Lengkap:</span><p className="text-gray-600">{detailData.namaLengkap || '-'}</p></div>
             <div><span className="font-semibold text-gray-700">Nomor WA:</span><p className="text-gray-600">{detailData.nomorWA || '-'}</p></div>
             <div><span className="font-semibold text-gray-700">NIK:</span><p className="text-gray-600">{detailData.nik || '-'}</p></div>
+            <div><span className="font-semibold text-gray-700">No. KK:</span><p className="text-gray-600">{detailData.nomorKK || '-'}</p></div>
             <div><span className="font-semibold text-gray-700">Jenis Kelamin:</span><p className="text-gray-600">{detailData.jenisKelamin === 'L' ? 'Laki-laki' : detailData.jenisKelamin === 'P' ? 'Perempuan' : '-'}</p></div>
-            <div><span className="font-semibold text-gray-700">RT:</span><p className="text-gray-600">{detailData.rt || '-'}</p></div>
-            <div><span className="font-semibold text-gray-700">RW:</span><p className="text-gray-600">{detailData.rw || '-'}</p></div>
+
             <div><span className="font-semibold text-gray-700">Tempat Lahir:</span><p className="text-gray-600">{detailData.tempatLahir || '-'}</p></div>
             <div><span className="font-semibold text-gray-700">Tanggal Lahir:</span><p className="text-gray-600">{detailData.tanggalLahir || '-'}</p></div>
             <div><span className="font-semibold text-gray-700">Email:</span><p className="text-gray-600">{detailData.email || '-'}</p></div>
