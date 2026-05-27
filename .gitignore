@@ -45,15 +45,3 @@ __tests__/
 
 # GitHub context files
 /.github/context-*.md
-
-# Local AI/tooling context
-/AGENTS.md
-/.agents/
-/.aider*
-/.claude/
-/.cline/
-/.codex/
-/.context/
-/.cursor/
-/.roo/
-/.windsurf/
