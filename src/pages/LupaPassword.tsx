@@ -20,12 +20,14 @@ import api from '../lib/api';
 
 interface ForgotPasswordErrors {
   nomorHP?: string;
+  nik?: string;
   general?: string;
 }
 
 const ForgotPasswordPage: React.FC = () => {
   const navigate = useNavigate();
   const [nomorHP, setNomorHP] = useState('');
+  const [nik, setNik] = useState('');
   const [errors, setErrors] = useState<ForgotPasswordErrors>({});
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -39,16 +41,34 @@ const ForgotPasswordPage: React.FC = () => {
       newErrors.nomorHP = 'Format nomor HP tidak valid (contoh: 08xxxxxxxxxx)';
     }
 
+    if (!nik) {
+      newErrors.nik = 'NIK tidak boleh kosong';
+    } else if (!/^\d{16}$/.test(nik)) {
+      newErrors.nik = 'NIK harus 16 digit';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const sanitized = e.target.value.replace(/\D/g, ''); // hanya angka
     setNomorHP(sanitized);
 
     if (errors.nomorHP) {
       setErrors((prev) => ({ ...prev, nomorHP: undefined }));
+    }
+    if (successMessage) {
+      setSuccessMessage('');
+    }
+  };
+
+  const handleNikChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const sanitized = e.target.value.replace(/\D/g, '').slice(0, 16);
+    setNik(sanitized);
+
+    if (errors.nik) {
+      setErrors((prev) => ({ ...prev, nik: undefined }));
     }
     if (successMessage) {
       setSuccessMessage('');
@@ -64,10 +84,11 @@ const ForgotPasswordPage: React.FC = () => {
     setSuccessMessage('');
 
     try {
-      const res = await api.post('/forgot-password', { no_telp: nomorHP });
+      const res = await api.post('/forgot-password', { no_telp: nomorHP, nik });
       navigate('/verifikasi-otp', {
         state: {
           nomorHP,
+          nik,
           debugOtp: res.data?.data?.debug_otp ?? null,
         },
       });
@@ -131,7 +152,7 @@ const ForgotPasswordPage: React.FC = () => {
             Reset Password
           </h2>
           <p className="text-center text-sm text-gray-500 mb-8">
-            Masukkan nomor HP yang terdaftar pada akun Anda. Kami akan mengirimkan kode OTP untuk verifikasi.
+            Masukkan nomor HP dan NIK yang terdaftar pada akun Anda. Kami akan mengirimkan kode OTP untuk verifikasi.
           </p>
 
           {/* General Error */}
@@ -179,7 +200,7 @@ const ForgotPasswordPage: React.FC = () => {
                   autoComplete="tel"
                   placeholder="Contoh: 08xxxxxxxxxx"
                   value={nomorHP}
-                  onChange={handleChange}
+                  onChange={handlePhoneChange}
                   className={`input-field pl-10 ${errors.nomorHP ? 'border-red-400 focus:ring-red-300' : ''}`}
                 />
               </div>
@@ -194,6 +215,44 @@ const ForgotPasswordPage: React.FC = () => {
                     }`}
                 >
                 </p>
+              </div>
+            </div>
+
+            {/* NIK */}
+            <div className="mb-6">
+              <label htmlFor="nik" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
+                NIK
+              </label>
+              <div className="relative">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 6h4m-7 4h10M7 14h6m-9 6h16a2 2 0 002-2V6a2 2 0 00-2-2H4a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                </div>
+                <input
+                  id="nik"
+                  name="nik"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={16}
+                  autoComplete="off"
+                  placeholder="Masukkan 16 digit NIK"
+                  value={nik}
+                  onChange={handleNikChange}
+                  className={`input-field pl-10 ${errors.nik ? 'border-red-400 focus:ring-red-300' : ''}`}
+                />
+              </div>
+              <div className="flex justify-between items-center mt-1">
+                {errors.nik ? (
+                  <p className="text-xs text-red-500">{errors.nik}</p>
+                ) : (
+                  <span />
+                )}
               </div>
             </div>
 

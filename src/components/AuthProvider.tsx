@@ -7,6 +7,18 @@ interface AuthProviderProps {
   children: React.ReactNode;
 }
 
+const publicPagePaths = [
+  '/',
+  '/login',
+  '/admin/login',
+  '/register',
+  '/lupa-password',
+  '/verifikasi-otp',
+  '/ganti-password',
+  '/struktur-desa',
+  '/katalog-jasa',
+];
+
 /**
  * AuthProvider: Validates token on app load
  * 
@@ -25,6 +37,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const validateToken = async () => {
       const token = authStorage.getToken();
+      const currentPath = window.location.pathname;
+      const isPublicPage = publicPagePaths.includes(currentPath);
 
       // If no token, proceed normally (user will hit login guard if trying protected route)
       if (!token) {
@@ -54,6 +68,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const status = (error as { response?: { status?: number } })?.response?.status;
         // 401 or any other error: token is invalid/stale
         console.warn('Token validation failed:', status);
+
+        if (isPublicPage) {
+          setIsValidating(false);
+          return;
+        }
         
         // Clear all auth data
         authStorage.clearSession();

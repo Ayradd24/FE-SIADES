@@ -1,6 +1,30 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { X, Check, MousePointer2, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Check, Loader2, MousePointer2, RotateCcw, X, ZoomIn, ZoomOut } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import * as pdfjsLib from 'pdfjs-dist';
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+
+export type PdfOverlayType = 'signature' | 'stamp';
+
+export interface PdfOverlayAsset {
+  id: PdfOverlayType;
+  type: PdfOverlayType;
+  label: string;
+  imageUrl: string;
+}
+
+export interface PdfOverlayPlacement {
+  id: PdfOverlayType;
+  type: PdfOverlayType;
+  imageUrl: string;
+  pageIndex: number;
+  xRatio: number;
+  yRatio: number;
+  widthRatio: number;
+  heightRatio: number;
+}
 
 interface PdfPreviewModalProps {
   isOpen: boolean;
@@ -8,100 +32,318 @@ interface PdfPreviewModalProps {
   fileUrl: string;
   title: string;
   mode?: 'view' | 'sign';
-  signatureUrl?: string | null;
-  onApprove?: (position: { x: number; y: number; page: number; scale: number }) => void;
+  overlays?: PdfOverlayAsset[];
+  onApprove?: (placements: PdfOverlayPlacement[]) => void;
+}
+
+interface PageInfo {
+  pageNumber: number;
+  width: number;
+  height: number;
+}
+
+interface OverlayBox {
+  id: PdfOverlayType;
+  type: PdfOverlayType;
+  label: string;
+  imageUrl: string;
+  pageIndex: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  naturalRatio?: number;
 }
 
 const MIN_SCALE = 0.5;
-const MAX_SCALE = 2.0;
+const MAX_SCALE = 2;
 const SCALE_STEP = 0.1;
-const DEFAULT_SCALE = 1.0;
+const DEFAULT_SCALE = 1;
+const MAX_PAGE_WIDTH = 820;
 
-const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  fileUrl, 
+const baseOverlayWidth: Record<PdfOverlayType, number> = {
+  signature: 180,
+  stamp: 220,
+};
+
+const defaultOverlayHeight: Record<PdfOverlayType, number> = {
+  signature: 96,
+  stamp: 220,
+};
+
+const defaultOverlayPosition: Record<PdfOverlayType, { x: number; y: number }> = {
+  signature: { x: 48, y: 48 },
+  stamp: { x: 280, y: 64 },
+};
+
+const PdfPageCanvas: React.FC<{
+  pdfDoc: pdfjsLib.PDFDocumentProxy;
+  pageNumber: number;
+  displayWidth: number;
+  onRendered: (page: PageInfo) => void;
+  renderKey: number;
+}> = ({ pdfDoc, pageNumber, displayWidth, onRendered, renderKey }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    let renderTask: pdfjsLib.RenderTask | null = null;
+
+    const renderPage = async () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const page = await pdfDoc.getPage(pageNumber);
+      if (cancelled) return;
+
+      const baseViewport = page.getViewport({ scale: 1 });
+      const displayScale = displayWidth / baseViewport.width;
+      const viewport = page.getViewport({ scale: displayScale });
+      const pixelRatio = window.devicePixelRatio || 1;
+      const context = canvas.getContext('2d');
+      if (!context) return;
+
+      canvas.width = Math.floor(viewport.width * pixelRatio);
+      canvas.height = Math.floor(viewport.height * pixelRatio);
+      canvas.style.width = `${viewport.width}px`;
+      canvas.style.height = `${viewport.height}px`;
+
+      renderTask = page.render({
+        canvas,
+        canvasContext: context,
+        viewport,
+        transform: pixelRatio !== 1 ? [pixelRatio, 0, 0, pixelRatio, 0, 0] : undefined,
+      });
+
+      await renderTask.promise;
+      if (!cancelled) {
+        onRendered({ pageNumber, width: viewport.width, height: viewport.height });
+      }
+    };
+
+    renderPage().catch((error) => {
+      if (!cancelled && error?.name !== 'RenderingCancelledException') {
+        console.error('Failed to render PDF page:', error);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      renderTask?.cancel();
+    };
+  }, [displayWidth, onRendered, pageNumber, pdfDoc, renderKey]);
+
+  return <canvas ref={canvasRef} className="block bg-white" />;
+};
+
+const createOverlayBoxes = (assets: PdfOverlayAsset[]): OverlayBox[] => assets.map((asset) => ({
+  ...asset,
+  pageIndex: 0,
+  x: defaultOverlayPosition[asset.type].x,
+  y: defaultOverlayPosition[asset.type].y,
+  width: baseOverlayWidth[asset.type],
+  height: defaultOverlayHeight[asset.type],
+}));
+
+const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
+  isOpen,
+  onClose,
+  fileUrl,
   title,
   mode = 'view',
-  signatureUrl,
-  onApprove
+  overlays = [],
+  onApprove,
 }) => {
-  const [position, setPosition] = useState({ x: 400, y: 300 });
+  const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
+  const [renderKey, setRenderKey] = useState(0);
+  const [pages, setPages] = useState<PageInfo[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [overlayBoxes, setOverlayBoxes] = useState<OverlayBox[]>([]);
+  const [activeOverlayId, setActiveOverlayId] = useState<PdfOverlayType>('signature');
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [scale, setScale] = useState(DEFAULT_SCALE);
-  const previewAreaRef = useRef<HTMLDivElement>(null);
-  const signatureRef = useRef<HTMLDivElement>(null);
+  const pageRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const activeDragPageIndexRef = useRef(0);
+  const showSigningTools = mode === 'sign' && overlays.length > 0;
 
-  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    // Ignore if clicking on resize controls
+  const activeOverlay = overlayBoxes.find((box) => box.id === activeOverlayId);
+  const activeScale = activeOverlay ? activeOverlay.width / baseOverlayWidth[activeOverlay.type] : DEFAULT_SCALE;
+  const scalePercent = Math.round(activeScale * 100);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let cancelled = false;
+    setPdfDoc(null);
+    setPages([]);
+    setLoadError(null);
+    setRenderKey((current) => current + 1);
+
+    const loadingTask = pdfjsLib.getDocument(fileUrl);
+    loadingTask.promise
+      .then((doc) => {
+        if (!cancelled) setPdfDoc(doc);
+      })
+      .catch((error) => {
+        console.error('Failed to load PDF:', error);
+        if (!cancelled) setLoadError('Gagal memuat file PDF.');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fileUrl, isOpen]);
+
+  useEffect(() => {
+    if (!showSigningTools) {
+      setOverlayBoxes([]);
+      return;
+    }
+
+    setOverlayBoxes(createOverlayBoxes(overlays));
+    setActiveOverlayId(overlays[0]?.id || 'signature');
+  }, [overlays, showSigningTools]);
+
+  const pageNumbers = useMemo(() => {
+    if (!pdfDoc) return [];
+    return Array.from({ length: pdfDoc.numPages }, (_, index) => index + 1);
+  }, [pdfDoc]);
+
+  const handlePageRendered = useCallback((page: PageInfo) => {
+    setPages((current) => {
+      const next = current.filter((item) => item.pageNumber !== page.pageNumber);
+      next.push(page);
+      return next.sort((a, b) => a.pageNumber - b.pageNumber);
+    });
+  }, []);
+
+  const clampOverlay = useCallback((box: OverlayBox) => {
+    const page = pages[box.pageIndex];
+    if (!page) return box;
+
+    const width = Math.min(box.width, page.width);
+    const height = Math.min(box.height, page.height);
+
+    return {
+      ...box,
+      width,
+      height,
+      x: Math.max(0, Math.min(box.x, page.width - width)),
+      y: Math.max(0, Math.min(box.y, page.height - height)),
+    };
+  }, [pages]);
+
+  const updateOverlay = useCallback((id: PdfOverlayType, updater: (box: OverlayBox) => OverlayBox) => {
+    setOverlayBoxes((current) => current.map((box) => (
+      box.id === id ? clampOverlay(updater(box)) : box
+    )));
+  }, [clampOverlay]);
+
+  const handleImageLoad = (id: PdfOverlayType, event: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = event.currentTarget;
+    if (!img.naturalWidth || !img.naturalHeight) return;
+
+    updateOverlay(id, (box) => {
+      const naturalRatio = img.naturalHeight / img.naturalWidth;
+      return {
+        ...box,
+        naturalRatio,
+        height: box.width * naturalRatio,
+      };
+    });
+  };
+
+  const handleOverlayPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>, box: OverlayBox) => {
     if ((e.target as HTMLElement).closest('[data-resize-control]')) return;
-    
+
     e.preventDefault();
     e.stopPropagation();
-    const target = e.currentTarget;
-    target.setPointerCapture(e.pointerId);
-    
-    const rect = target.getBoundingClientRect();
+    e.currentTarget.setPointerCapture(e.pointerId);
+
+    const overlayRect = e.currentTarget.getBoundingClientRect();
     setDragOffset({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+      x: e.clientX - overlayRect.left,
+      y: e.clientY - overlayRect.top,
     });
+    activeDragPageIndexRef.current = box.pageIndex;
+    setActiveOverlayId(box.id);
     setIsDragging(true);
   }, []);
 
-  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isDragging || !previewAreaRef.current) return;
+  const handlePagePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>, pageIndex: number) => {
+    if (!showSigningTools || !activeOverlay) return;
+    if ((e.target as HTMLElement).closest('[data-overlay-box]')) return;
+
     e.preventDefault();
-    
-    const containerRect = previewAreaRef.current.getBoundingClientRect();
-    const sigEl = signatureRef.current;
-    const sigWidth = sigEl?.offsetWidth ?? 120;
-    const sigHeight = sigEl?.offsetHeight ?? 80;
+    e.currentTarget.setPointerCapture(e.pointerId);
 
-    let newX = e.clientX - containerRect.left - dragOffset.x;
-    let newY = e.clientY - containerRect.top - dragOffset.y;
+    const pageRect = e.currentTarget.getBoundingClientRect();
+    updateOverlay(activeOverlay.id, (box) => ({
+      ...box,
+      pageIndex,
+      x: e.clientX - pageRect.left - box.width / 2,
+      y: e.clientY - pageRect.top - box.height / 2,
+    }));
 
-    // Clamp within bounds
-    newX = Math.max(0, Math.min(newX, containerRect.width - sigWidth));
-    newY = Math.max(0, Math.min(newY, containerRect.height - sigHeight));
+    activeDragPageIndexRef.current = pageIndex;
+    setDragOffset({ x: activeOverlay.width / 2, y: activeOverlay.height / 2 });
+    setIsDragging(true);
+  }, [activeOverlay, showSigningTools, updateOverlay]);
 
-    setPosition({ x: newX, y: newY });
-  }, [isDragging, dragOffset]);
+  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging || !activeOverlay) return;
+    e.preventDefault();
+
+    const activePageIndex = activeDragPageIndexRef.current;
+    const pageEl = pageRefs.current[activePageIndex];
+    if (!pageEl) return;
+
+    const pageRect = pageEl.getBoundingClientRect();
+    updateOverlay(activeOverlay.id, (box) => ({
+      ...box,
+      pageIndex: activePageIndex,
+      x: e.clientX - pageRect.left - dragOffset.x,
+      y: e.clientY - pageRect.top - dragOffset.y,
+    }));
+  }, [activeOverlay, dragOffset, isDragging, updateOverlay]);
 
   const handlePointerUp = useCallback(() => {
     setIsDragging(false);
   }, []);
 
-  const handleScaleUp = useCallback(() => {
-    setScale(prev => Math.min(prev + SCALE_STEP, MAX_SCALE));
-  }, []);
-
-  const handleScaleDown = useCallback(() => {
-    setScale(prev => Math.max(prev - SCALE_STEP, MIN_SCALE));
-  }, []);
-
-  const handleScaleReset = useCallback(() => {
-    setScale(DEFAULT_SCALE);
-  }, []);
-
-  const handleSliderChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setScale(parseFloat(e.target.value));
-  }, []);
+  const setActiveScale = useCallback((nextScale: number) => {
+    if (!activeOverlay) return;
+    updateOverlay(activeOverlay.id, (box) => {
+      const width = baseOverlayWidth[box.type] * nextScale;
+      return {
+        ...box,
+        width,
+        height: width * (box.naturalRatio || box.height / box.width),
+      };
+    });
+  }, [activeOverlay, updateOverlay]);
 
   const handleApprove = () => {
-    if (onApprove && previewAreaRef.current) {
-      const container = previewAreaRef.current;
-      const rect = container.getBoundingClientRect();
-      
-      const relativeX = position.x / rect.width;
-      const relativeY = position.y / rect.height;
-      
-      onApprove({ x: relativeX, y: relativeY, page: 1, scale });
-    }
-  };
+    if (!onApprove || overlayBoxes.length === 0) return;
 
-  const scalePercent = Math.round(scale * 100);
+    const placements = overlayBoxes.map((box) => {
+      const page = pages[box.pageIndex];
+      const safeBox = clampOverlay(box);
+
+      return page ? {
+        id: safeBox.id,
+        type: safeBox.type,
+        imageUrl: safeBox.imageUrl,
+        pageIndex: safeBox.pageIndex,
+        xRatio: safeBox.x / page.width,
+        yRatio: safeBox.y / page.height,
+        widthRatio: safeBox.width / page.width,
+        heightRatio: safeBox.height / page.height,
+      } : null;
+    }).filter((placement): placement is PdfOverlayPlacement => placement !== null);
+
+    onApprove(placements);
+  };
 
   return (
     <AnimatePresence>
@@ -111,19 +353,19 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl h-[92vh] flex flex-col overflow-hidden border border-gray-100"
+            className="bg-white rounded-3xl shadow-2xl w-full max-w-6xl h-[92vh] flex flex-col overflow-hidden border border-gray-100"
           >
-            {/* Header */}
             <div className="flex items-center justify-between px-8 py-5 border-b">
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
-                {mode === 'sign' && signatureUrl && (
+                {showSigningTools && (
                   <p className="text-sm text-blue-600 font-medium flex items-center gap-1 mt-1">
-                    <MousePointer2 className="w-4 h-4" /> Geser tanda tangan ke posisi yang diinginkan
+                    <MousePointer2 className="w-4 h-4" /> Pilih item, lalu geser ke halaman dan posisi yang diinginkan
                   </p>
                 )}
               </div>
               <button
+                type="button"
                 onClick={onClose}
                 className="p-2 hover:bg-gray-100 rounded-full transition-colors"
               >
@@ -131,14 +373,29 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
               </button>
             </div>
 
-            {/* Resize Toolbar - only in sign mode */}
-            {mode === 'sign' && signatureUrl && (
-              <div className="px-8 py-3 border-b bg-gradient-to-r from-blue-50 to-indigo-50 flex items-center justify-center gap-4">
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mr-1">Ukuran</span>
-                
+            {showSigningTools && activeOverlay && (
+              <div className="px-8 py-3 border-b bg-blue-50 flex flex-wrap items-center justify-center gap-4">
+                <div className="flex rounded-xl bg-white p-1 border border-blue-100 shadow-sm">
+                  {overlayBoxes.map((box) => (
+                    <button
+                      key={box.id}
+                      type="button"
+                      onClick={() => setActiveOverlayId(box.id)}
+                      className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors ${
+                        activeOverlayId === box.id ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-blue-50'
+                      }`}
+                    >
+                      {box.label}
+                    </button>
+                  ))}
+                </div>
+
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mr-1">Ukuran {activeOverlay.label}</span>
+
                 <button
-                  onClick={handleScaleDown}
-                  disabled={scale <= MIN_SCALE}
+                  type="button"
+                  onClick={() => setActiveScale(Math.max(activeScale - SCALE_STEP, MIN_SCALE))}
+                  disabled={activeScale <= MIN_SCALE}
                   className="p-1.5 rounded-lg bg-white border border-gray-200 shadow-sm hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
                   title="Perkecil"
                   data-resize-control
@@ -152,8 +409,8 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
                     min={MIN_SCALE}
                     max={MAX_SCALE}
                     step={SCALE_STEP}
-                    value={scale}
-                    onChange={handleSliderChange}
+                    value={activeScale}
+                    onChange={(e) => setActiveScale(parseFloat(e.target.value))}
                     className="flex-1 h-1.5 rounded-full appearance-none cursor-pointer accent-blue-600 bg-gray-200"
                     data-resize-control
                   />
@@ -163,8 +420,9 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
                 </div>
 
                 <button
-                  onClick={handleScaleUp}
-                  disabled={scale >= MAX_SCALE}
+                  type="button"
+                  onClick={() => setActiveScale(Math.min(activeScale + SCALE_STEP, MAX_SCALE))}
+                  disabled={activeScale >= MAX_SCALE}
                   className="p-1.5 rounded-lg bg-white border border-gray-200 shadow-sm hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
                   title="Perbesar"
                   data-resize-control
@@ -173,7 +431,8 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
                 </button>
 
                 <button
-                  onClick={handleScaleReset}
+                  type="button"
+                  onClick={() => setActiveScale(DEFAULT_SCALE)}
                   className="p-1.5 rounded-lg bg-white border border-gray-200 shadow-sm hover:bg-gray-50 transition-all active:scale-95 ml-1"
                   title="Reset ukuran"
                   data-resize-control
@@ -182,78 +441,118 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
                 </button>
               </div>
             )}
-            
-            {/* PDF Preview Area */}
-            <div className="flex-1 bg-gray-200 p-8 overflow-auto flex justify-center">
-              <div 
-                ref={previewAreaRef}
-                className="relative bg-white shadow-2xl rounded-sm" 
-                style={{ 
-                  width: '100%', 
-                  maxWidth: '800px',
-                  minHeight: '1131px',
-                }}
-              >
-                <iframe
-                  src={`${fileUrl}#toolbar=0&navpanes=0`}
-                  className="w-full h-full border-none"
-                  style={{ minHeight: '1131px' }}
-                  title="PDF Preview"
-                />
-                
-                {mode === 'sign' && signatureUrl && (
-                  <div
-                    ref={signatureRef}
-                    onPointerDown={handlePointerDown}
-                    onPointerMove={handlePointerMove}
-                    onPointerUp={handlePointerUp}
-                    onPointerCancel={handlePointerUp}
-                    className="absolute z-10 touch-none select-none"
-                    style={{
-                      left: `${position.x}px`,
-                      top: `${position.y}px`,
-                      cursor: isDragging ? 'grabbing' : 'grab',
-                    }}
-                  >
-                    <div 
-                      className={`relative border-2 rounded-lg p-2 shadow-xl backdrop-blur-[2px] transition-all duration-150 ${isDragging ? 'border-blue-600 bg-blue-100/50 shadow-2xl' : 'border-blue-500 bg-blue-50/40'}`}
-                    >
-                      <img 
-                        src={signatureUrl} 
-                        alt="Signature Overlay" 
-                        className="pointer-events-none select-none mix-blend-multiply"
-                        draggable={false}
+
+            <div className="flex-1 bg-gray-200 p-6 overflow-auto">
+              {loadError && (
+                <div className="mx-auto max-w-xl rounded-xl bg-white p-6 text-center text-sm font-semibold text-red-600 shadow">
+                  {loadError}
+                </div>
+              )}
+
+              {!loadError && !pdfDoc && (
+                <div className="h-full flex items-center justify-center text-gray-500 gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Memuat PDF...
+                </div>
+              )}
+
+              {!loadError && pdfDoc && (
+                <div className="mx-auto flex w-fit flex-col gap-6">
+                  {pageNumbers.map((pageNumber, pageIndex) => {
+                    const page = pages.find((item) => item.pageNumber === pageNumber);
+                    const pageOverlays = overlayBoxes.filter((box) => box.pageIndex === pageIndex);
+
+                    return (
+                      <div
+                        key={pageNumber}
+                        ref={(node) => { pageRefs.current[pageIndex] = node; }}
+                        onPointerDown={(event) => handlePagePointerDown(event, pageIndex)}
+                        onPointerMove={handlePointerMove}
+                        onPointerUp={handlePointerUp}
+                        onPointerCancel={handlePointerUp}
+                        className="relative bg-white shadow-2xl"
                         style={{
-                          height: `${6 * scale}rem`, // base h-24 = 6rem, scaled
-                          width: 'auto',
-                          transition: isDragging ? 'none' : 'height 0.15s ease',
+                          width: `${page?.width ?? MAX_PAGE_WIDTH}px`,
+                          minHeight: `${page?.height ?? 1160}px`,
                         }}
-                      />
-                      <div className="absolute -top-3 -left-3 bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold shadow-md whitespace-nowrap">
-                        Tanda Tangan · {scalePercent}%
+                      >
+                        <PdfPageCanvas
+                          pdfDoc={pdfDoc}
+                          pageNumber={pageNumber}
+                          displayWidth={MAX_PAGE_WIDTH}
+                          onRendered={handlePageRendered}
+                          renderKey={renderKey}
+                        />
+
+                        <div className="absolute left-3 top-3 rounded-full bg-black/55 px-3 py-1 text-xs font-bold text-white">
+                          Halaman {pageNumber}
+                        </div>
+
+                        {showSigningTools && pageOverlays.map((box) => {
+                          const selected = activeOverlayId === box.id;
+
+                          return (
+                            <div
+                              key={box.id}
+                              data-overlay-box
+                              onPointerDown={(event) => handleOverlayPointerDown(event, box)}
+                              onPointerMove={handlePointerMove}
+                              onPointerUp={handlePointerUp}
+                              onPointerCancel={handlePointerUp}
+                              className="absolute z-10 touch-none select-none"
+                              style={{
+                                left: `${box.x}px`,
+                                top: `${box.y}px`,
+                                width: `${box.width}px`,
+                                height: `${box.height}px`,
+                                cursor: isDragging && selected ? 'grabbing' : 'grab',
+                              }}
+                            >
+                              <div
+                                className={`relative h-full w-full border-2 rounded-lg p-2 shadow-xl backdrop-blur-[2px] transition-all duration-150 ${
+                                  selected ? 'border-blue-600 bg-blue-100/50 shadow-2xl' : 'border-blue-400 bg-blue-50/30'
+                                }`}
+                              >
+                                <img
+                                  src={box.imageUrl}
+                                  alt={box.label}
+                                  onLoad={(event) => handleImageLoad(box.id, event)}
+                                  className="pointer-events-none h-full w-full select-none object-contain mix-blend-multiply"
+                                  style={{ opacity: box.type === 'stamp' ? 0.6 : 1 }}
+                                  draggable={false}
+                                />
+                                <div className="absolute -top-3 -left-3 bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold shadow-md whitespace-nowrap">
+                                  {box.label} · {Math.round((box.width / baseOverlayWidth[box.type]) * 100)}%
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
-            {/* Footer */}
             <div className="px-8 py-5 border-t bg-gray-50 flex justify-between items-center">
               <p className="text-xs text-gray-400 italic">
-                {mode === 'sign' ? 'Pastikan posisi dan ukuran tanda tangan sudah sesuai sebelum menyetujui.' : 'Gunakan tombol download untuk menyimpan dokumen.'}
+                {mode === 'sign' ? 'Pastikan posisi dan ukuran tanda tangan serta stempel sudah sesuai sebelum menyetujui.' : 'Gunakan tombol download untuk menyimpan dokumen.'}
               </p>
               <div className="flex gap-3">
                 <button
+                  type="button"
                   onClick={onClose}
                   className="px-6 py-3 bg-white border border-gray-200 text-gray-600 font-bold rounded-2xl hover:bg-gray-50 transition-all shadow-sm"
                 >
                   Batal
                 </button>
-                {mode === 'sign' && signatureUrl && (
+                {showSigningTools && (
                   <button
+                    type="button"
                     onClick={handleApprove}
-                    className="px-8 py-3 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 flex items-center gap-2"
+                    disabled={overlayBoxes.length === 0 || overlayBoxes.some((box) => !pages[box.pageIndex])}
+                    className="px-8 py-3 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-200 flex items-center gap-2"
                   >
                     <Check className="w-5 h-5" /> Konfirmasi Posisi & Setujui
                   </button>

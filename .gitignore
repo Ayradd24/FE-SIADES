@@ -11,6 +11,26 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
+.env.*
+!.env.example
+
+# Test coverage and cache
+coverage/
+.vitest/
+.nyc_output/
+.coverage
+coverage.xml
+*.coverage
+
+# Local test files
+__tests__/
+*.test.*
+*.spec.*
+
+# Build cache
+.vite/
+.cache/
 
 # Editor directories and files
 .vscode/*
@@ -22,3 +42,18 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# GitHub context files
+/.github/context-*.md
+
+# Local AI/tooling context
+/AGENTS.md
+/.agents/
+/.aider*
+/.claude/
+/.cline/
+/.codex/
+/.context/
+/.cursor/
+/.roo/
+/.windsurf/

@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import logoDesaImg from '../../assets/logo-desa.png';
+import api, { BASE_URL } from '../../lib/api';
 import { useAuth } from '../../hooks/useAuth';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { authStorage } from '../../lib/authStorage';
@@ -50,12 +51,34 @@ const navItems = [
   { label: 'Profil', path: '/warga/profil', icon: <UserIcon /> },
 ];
 
+const storageBaseUrl = BASE_URL.replace(/\/api$/, '') + '/storage/';
+
 const WargaLayout: React.FC = () => {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const [confirmLogoutOpen, setConfirmLogoutOpen] = React.useState(false);
+  const [profilePhoto, setProfilePhoto] = React.useState<string | null>(authStorage.getProfilePhoto());
   
   const userName = authStorage.getName() || 'Warga';
+
+  React.useEffect(() => {
+    const syncProfilePhoto = () => {
+      setProfilePhoto(authStorage.getProfilePhoto());
+    };
+
+    api.get('/warga/profile')
+      .then((res) => {
+        const nextPhoto = res.data?.profilePhoto || null;
+        authStorage.setProfilePhoto(nextPhoto);
+        setProfilePhoto(nextPhoto);
+      })
+      .catch(() => {
+        syncProfilePhoto();
+      });
+
+    window.addEventListener('siades-profile-photo-updated', syncProfilePhoto);
+    return () => window.removeEventListener('siades-profile-photo-updated', syncProfilePhoto);
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-[#e8edf5]">
@@ -65,9 +88,17 @@ const WargaLayout: React.FC = () => {
         {/* Profile Area */}
         <div className="flex flex-col items-center py-6 px-4 border-b border-blue-100">
           <div className="w-20 h-20 rounded-2xl bg-blue-200 flex items-center justify-center mb-3 overflow-hidden">
-            <svg className="w-12 h-12 text-[#1e3a5f]" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
-            </svg>
+            {profilePhoto ? (
+              <img
+                src={`${storageBaseUrl}${profilePhoto}`}
+                alt={userName}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <svg className="w-12 h-12 text-[#1e3a5f]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
+              </svg>
+            )}
           </div>
           <span className="font-bold text-[#1e3a5f] text-sm text-center">
             {userName}
