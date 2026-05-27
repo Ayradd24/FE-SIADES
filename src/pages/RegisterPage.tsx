@@ -9,6 +9,7 @@ interface RegisterForm {
   NIK: string;
   nomorkk: string;
   nomorHP: string;
+  alamat: string;
   username: string;
   password: string;
   konfirmasiPassword: string;
@@ -20,6 +21,7 @@ interface RegisterErrors {
   NIK?: string;
   nomorkk?: string;
   nomorHP?: string;
+  alamat?: string;
   username?: string;
   password?: string;
   konfirmasiPassword?: string;
@@ -108,6 +110,7 @@ const RegisterPage: React.FC = () => {
     NIK: '',
     nomorkk: '',
     nomorHP: '',
+    alamat: '',
     username: '',
     password: '',
     konfirmasiPassword: '',
@@ -130,9 +133,6 @@ const RegisterPage: React.FC = () => {
       newErrors.NIK = 'Format NIK tidak valid (16 digit angka)';
     }
 
-    if (!form.jenisKelamin) {
-      newErrors.jenisKelamin = 'Jenis kelamin wajib dipilih';
-    }
 
     if (!form.nomorkk) {
       newErrors.nomorkk = 'Nomor Kartu Keluarga tidak boleh kosong';
@@ -140,10 +140,18 @@ const RegisterPage: React.FC = () => {
       newErrors.nomorkk = 'Format nomor KK tidak valid (16 digit angka)';
     }
 
+    if (!form.jenisKelamin) {
+      newErrors.jenisKelamin = 'Jenis kelamin wajib dipilih';
+    }
+
     if (!form.nomorHP) {
       newErrors.nomorHP = 'Nomor HP tidak boleh kosong';
     } else if (!/^08\d{8,11}$/.test(form.nomorHP)) {
       newErrors.nomorHP = 'Format nomor HP tidak valid (contoh: 08xxxxxxxxxx)';
+    }
+
+    if (!form.alamat.trim()) {
+      newErrors.alamat = 'Alamat tidak boleh kosong';
     }
 
     if (!form.username) {
@@ -201,6 +209,7 @@ const RegisterPage: React.FC = () => {
         nik: form.NIK,
         no_kk: form.nomorkk,
         no_telp: form.nomorHP,
+        alamat: form.alamat,
         username: form.username,
         password: form.password,
       });
@@ -227,6 +236,7 @@ const RegisterPage: React.FC = () => {
         if (backendErrors.no_kk) newErrors.nomorkk = backendErrors.no_kk[0];
         if (backendErrors.username) newErrors.username = backendErrors.username[0];
         if (backendErrors.password) newErrors.password = backendErrors.password[0];
+        if (backendErrors.alamat) newErrors.alamat = backendErrors.alamat[0];
 
         setErrors({
           ...newErrors,
@@ -333,27 +343,6 @@ const RegisterPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Jenis Kelamin */}
-            <div className="mb-4">
-              <label htmlFor="jenisKelamin" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
-                Jenis Kelamin
-              </label>
-              <select
-                id="jenisKelamin"
-                name="jenisKelamin"
-                value={form.jenisKelamin}
-                onChange={(e) => setForm((prev) => ({ ...prev, jenisKelamin: e.target.value as '' | 'L' | 'P' }))}
-                className={`input-field ${errors.jenisKelamin ? 'border-red-400 focus:ring-red-300' : ''}`}
-              >
-                <option value="">Pilih jenis kelamin</option>
-                <option value="L">Laki-laki</option>
-                <option value="P">Perempuan</option>
-              </select>
-              {errors.jenisKelamin && (
-                <p className="mt-1 text-xs text-red-500">{errors.jenisKelamin}</p>
-              )}
-            </div>
-
             {/* Nomor Kartu Keluarga */}
             <div className="mb-4">
               <label htmlFor="nomorkk" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
@@ -383,6 +372,27 @@ const RegisterPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Jenis Kelamin */}
+            <div className="mb-4">
+              <label htmlFor="jenisKelamin" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
+                Jenis Kelamin
+              </label>
+              <select
+                id="jenisKelamin"
+                name="jenisKelamin"
+                value={form.jenisKelamin}
+                onChange={(e) => setForm((prev) => ({ ...prev, jenisKelamin: e.target.value as '' | 'L' | 'P' }))}
+                className={`input-field ${errors.jenisKelamin ? 'border-red-400 focus:ring-red-300' : ''}`}
+              >
+                <option value="">Pilih jenis kelamin</option>
+                <option value="L">Laki-laki</option>
+                <option value="P">Perempuan</option>
+              </select>
+              {errors.jenisKelamin && (
+                <p className="mt-1 text-xs text-red-500">{errors.jenisKelamin}</p>
+              )}
+            </div>
+
             {/* Nomor HP */}
             <div className="mb-4">
               <label htmlFor="nomorHP" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
@@ -407,11 +417,36 @@ const RegisterPage: React.FC = () => {
                   <span />
                 )}
                 <p className={`text-xs ml-auto ${form.nomorHP.length >= 10 && form.nomorHP.length <= 13
-                    ? 'text-green-500'
-                    : 'text-gray-400'
+                  ? 'text-green-500'
+                  : 'text-gray-400'
                   }`}>
                 </p>
               </div>
+            </div>
+
+            {/* Alamat */}
+            <div className="mb-4">
+              <label htmlFor="alamat" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
+                Alamat
+              </label>
+              <textarea
+                id="alamat"
+                name="alamat"
+                rows={3}
+                autoComplete="street-address"
+                placeholder="Masukkan alamat lengkap"
+                value={form.alamat}
+                onChange={(e) => {
+                  setForm((prev) => ({ ...prev, alamat: e.target.value }));
+                  if (errors.alamat) {
+                    setErrors((prev) => ({ ...prev, alamat: undefined }));
+                  }
+                }}
+                className={`input-field resize-none ${errors.alamat ? 'border-red-400 focus:ring-red-300' : ''}`}
+              />
+              {errors.alamat && (
+                <p className="mt-1 text-xs text-red-500">{errors.alamat}</p>
+              )}
             </div>
 
             {/* Username */}

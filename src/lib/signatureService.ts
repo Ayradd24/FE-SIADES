@@ -27,6 +27,12 @@ const signatureService = {
     await api.delete(`/admin/signatures/${id}`);
   },
 
+  getImageData: async (id: number): Promise<string> => {
+    const response = await api.get(`/admin/signatures/${id}/image`);
+    return response.data.signature_data;
+  },
+
+
   approveWithSignature: async (suratId: number, position: any) => {
     const response = await api.post(`/admin/persetujuan-surat/${suratId}/approve`, {
       signature_position: position,

@@ -24,8 +24,6 @@ const ProfilSaya: React.FC = () => {
     nomorhp: '',
     username: '',
     alamat: '',
-    rt: '',
-    rw: '',
     jenisKelamin: '',
     tempatLahir: '',
     tanggalLahir: '',
@@ -63,8 +61,6 @@ const ProfilSaya: React.FC = () => {
           nomorhp: res.data?.nomorWA || '', // Sesuai dengan key yang dikirim oleh backend controller
           username: res.data?.username || '',
           alamat: res.data?.alamat || '',
-          rt: res.data?.rt || '',
-          rw: res.data?.rw || '',
           jenisKelamin: jenisKelaminForm,
           tempatLahir: res.data?.tempatLahir || '',
           tanggalLahir: res.data?.tanggalLahir || '',
@@ -133,6 +129,11 @@ const ProfilSaya: React.FC = () => {
       return;
     }
 
+    if (!form.alamat.trim()) {
+      showToast('Alamat wajib diisi', 'error');
+      return;
+    }
+
     if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       showToast('Format email tidak valid', 'error');
       return;
@@ -146,8 +147,6 @@ const ProfilSaya: React.FC = () => {
         nomorkk: form.nomorkk,
         nomorWA: form.nomorhp, // DIUBAH: Dikirim sebagai 'nomorWA' agar lolos validasi FormRequest Laravel
         alamat: form.alamat,
-        rt: form.rt,
-        rw: form.rw,
         jenisKelamin: form.jenisKelamin === 'Laki-laki' ? 'L' : 'P', // DIUBAH: Konversi string ke inisial 'L'/'P' sebelum dikirim
         tempatLahir: form.tempatLahir,
         tanggalLahir: form.tanggalLahir,
@@ -294,43 +293,17 @@ const ProfilSaya: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-[#1e3a5f] mb-1">Alamat Lengkap</label>
+            <label className="block text-sm font-semibold text-[#1e3a5f] mb-1">Alamat Lengkap<span className="text-red-500">*</span></label>
             <textarea
               name="alamat"
               rows={3}
               value={form.alamat}
               onChange={handleChange}
+              required
               placeholder="Alamat lengkap"
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all"
+              className={`w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all ${!form.alamat.trim() && form.alamat !== undefined ? 'border-red-400' : 'border-gray-300'}`}
               disabled={fetching}
             ></textarea>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-[#1e3a5f] mb-1">RT</label>
-              <input
-                type="text"
-                name="rt"
-                value={form.rt}
-                onChange={handleChange}
-                disabled={fetching}
-                placeholder="001"
-                className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-[#1e3a5f] mb-1">RW</label>
-              <input
-                type="text"
-                name="rw"
-                value={form.rw}
-                onChange={handleChange}
-                disabled={fetching}
-                placeholder="001"
-                className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all"
-              />
-            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

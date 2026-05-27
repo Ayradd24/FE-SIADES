@@ -29,6 +29,11 @@ const stampService = {
   delete: async (id: number): Promise<void> => {
     await api.delete(`/admin/stamps/${id}`);
   },
+
+  getImageData: async (id: number): Promise<string> => {
+    const response = await api.get(`/admin/stamps/${id}/image`);
+    return response.data.stamp_data;
+  },
 };
 
 export default stampService;

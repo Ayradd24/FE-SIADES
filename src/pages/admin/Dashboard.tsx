@@ -26,17 +26,17 @@ const StatCard: React.FC<{
   const navigate = useNavigate();
   return (
     <div
-      className="bg-white rounded-2xl p-6 shadow-sm cursor-pointer hover:shadow-md transition-shadow duration-200 flex flex-col gap-4"
+      className="bg-white rounded-2xl p-6 shadow-sm cursor-pointer hover:shadow-md transition-shadow duration-200 flex flex-col gap-4 h-full"
       onClick={() => navigate(path)}
     >
       <div className="w-16 h-16 bg-[#dce5f5] rounded-xl flex items-center justify-center text-[#4a6fa5]">
         {icon}
       </div>
-      <div>
+      <div className="flex-grow">
         <p className="text-sm text-gray-500 mb-1">{label}</p>
         <p className="text-3xl font-bold text-[#1e3a5f]">{value}</p>
       </div>
-      <div className="flex justify-end">
+      <div className="flex justify-end mt-auto">
         <button className="text-sm text-[#4a6fa5] bg-[#dce5f5] hover:bg-blue-200 px-4 py-1.5 rounded-full font-medium transition-colors">
           Detail →
         </button>
@@ -58,6 +58,16 @@ const PeopleIcon = () => (
 const ShopIcon = () => (
   <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+  </svg>
+);
+const StructureIcon = () => (
+  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+  </svg>
+);
+const GearIcon = () => (
+  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
   </svg>
 );
 const statusBadge = (status: string) => {
@@ -135,32 +145,48 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+      {/* Stats & Quick Access Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-10">
         {loading ? (
-          Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)
-        ) : stats ? (
+          Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={i} />)
+        ) : (
           <>
+            {stats && (
+              <>
+                <StatCard
+                  icon={<MailIcon />}
+                  label="Surat Menunggu"
+                  value={stats.suratMenunggu}
+                  path="/admin/persetujuan-surat"
+                />
+                <StatCard
+                  icon={<PeopleIcon />}
+                  label="Total Warga"
+                  value={stats.totalWarga.toLocaleString('id-ID')}
+                  path="/admin/data-warga"
+                />
+                <StatCard
+                  icon={<ShopIcon />}
+                  label="Usaha Aktif"
+                  value={stats.usahaAktif}
+                  path="/admin/manajemen-katalog"
+                />
+              </>
+            )}
             <StatCard
-              icon={<MailIcon />}
-              label="Surat Menunggu"
-              value={stats.suratMenunggu}
-              path="/admin/persetujuan-surat"
+              icon={<StructureIcon />}
+              label="Struktur Desa"
+              value=""
+              path="/admin/manajemen-struktur-desa"
             />
             <StatCard
-              icon={<PeopleIcon />}
-              label="Total Warga"
-              value={stats.totalWarga.toLocaleString('id-ID')}
-              path="/admin/data-warga"
-            />
-            <StatCard
-              icon={<ShopIcon />}
-              label="Usaha Aktif"
-              value={stats.usahaAktif}
-              path="/admin/manajemen-katalog"
+              icon={<GearIcon />}
+              label="Manajemen Perangkat"
+              value=""
+              path="/admin/manajemen-perangkat"
             />
           </>
-        ) : null}
+        )}
       </div>
 
       {/* Recent Permohonan Surat */}

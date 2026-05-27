@@ -49,7 +49,9 @@ const SignatureModal: React.FC<SignatureModalProps> = ({ isOpen, onClose, onConf
   const [savedSignatures, setSavedSignatures] = useState<AdminSignature[]>([]);
   const [savedStamps, setSavedStamps] = useState<AdminStamp[]>([]);
   const [selectedSignatureUrl, setSelectedSignatureUrl] = useState('');
+  const [selectedSignatureId, setSelectedSignatureId] = useState<number | null>(null);
   const [selectedStampUrl, setSelectedStampUrl] = useState('');
+  const [selectedStampId, setSelectedStampId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [uploadingStamp, setUploadingStamp] = useState(false);
   const [saveForLater, setSaveForLater] = useState(false);
@@ -61,12 +63,20 @@ const SignatureModal: React.FC<SignatureModalProps> = ({ isOpen, onClose, onConf
   const fetchAssets = async () => {
     try {
       setIsLoading(true);
-      const [signatures, stamps] = await Promise.all([
-        signatureService.getAll(),
-        stampService.getAll(),
-      ]);
-      setSavedSignatures(signatures);
-      setSavedStamps(stamps);
+      
+      try {
+        const signatures = await signatureService.getAll();
+        setSavedSignatures(signatures);
+      } catch (err) {
+        console.error('Failed to fetch signatures:', err);
+      }
+
+      try {
+        const stamps = await stampService.getAll();
+        setSavedStamps(stamps);
+      } catch (err) {
+        console.error('Failed to fetch stamps:', err);
+      }
     } catch (err) {
       console.error('Failed to fetch approval assets:', err);
     } finally {
@@ -110,13 +120,19 @@ const SignatureModal: React.FC<SignatureModalProps> = ({ isOpen, onClose, onConf
           return;
         }
         setIsLoading(true);
-        await signatureService.store(signatureName.trim(), dataUrl);
+        const newSig = await signatureService.store(signatureName.trim(), dataUrl);
         await fetchAssets();
         setSignatureName('');
         setSaveForLater(false);
-      }
 
-      setSelectedSignatureUrl(dataUrl);
+        // Automatically select the newly saved signature via base64
+        const base64Data = await signatureService.getImageData(newSig.id);
+        setSelectedSignatureUrl(base64Data);
+        setSelectedSignatureId(newSig.id);
+      } else {
+        setSelectedSignatureUrl(dataUrl);
+        setSelectedSignatureId(null);
+      }
     } catch (err) {
       console.error('Error saving signature:', err);
       alert('Gagal menyimpan tanda tangan');
@@ -125,8 +141,18 @@ const SignatureModal: React.FC<SignatureModalProps> = ({ isOpen, onClose, onConf
     }
   };
 
-  const handleSelectSavedSignature = (sig: AdminSignature) => {
-    setSelectedSignatureUrl(`${storageBaseUrl}${sig.file_path}`);
+  const handleSelectSavedSignature = async (sig: AdminSignature) => {
+    try {
+      setIsLoading(true);
+      const base64Data = await signatureService.getImageData(sig.id);
+      setSelectedSignatureUrl(base64Data);
+      setSelectedSignatureId(sig.id);
+    } catch (err) {
+      console.error('Failed to fetch signature image data:', err);
+      alert('Gagal memuat detail gambar tanda tangan');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleDeleteSavedSignature = async (e: React.MouseEvent, id: number) => {
@@ -135,6 +161,10 @@ const SignatureModal: React.FC<SignatureModalProps> = ({ isOpen, onClose, onConf
     try {
       await signatureService.delete(id);
       setSavedSignatures((prev) => prev.filter((sig) => sig.id !== id));
+      if (selectedSignatureId === id) {
+        setSelectedSignatureUrl('');
+        setSelectedSignatureId(null);
+      }
     } catch {
       alert('Gagal menghapus tanda tangan');
     }
@@ -154,7 +184,12 @@ const SignatureModal: React.FC<SignatureModalProps> = ({ isOpen, onClose, onConf
       setUploadingStamp(true);
       const stamp = await stampService.store(stampName.trim(), stampFile);
       setSavedStamps((prev) => [stamp, ...prev]);
-      setSelectedStampUrl(`${storageBaseUrl}${stamp.file_path}`);
+
+      // Automatically select the newly uploaded stamp via base64
+      const base64Data = await stampService.getImageData(stamp.id);
+      setSelectedStampUrl(base64Data);
+      setSelectedStampId(stamp.id);
+
       setStampName('');
       setStampFile(null);
     } catch (err: any) {
@@ -164,12 +199,35 @@ const SignatureModal: React.FC<SignatureModalProps> = ({ isOpen, onClose, onConf
     }
   };
 
+  const handleSelectSavedStamp = async (stamp: AdminStamp) => {
+    if (selectedStampId === stamp.id) {
+      setSelectedStampUrl('');
+      setSelectedStampId(null);
+      return;
+    }
+    try {
+      setIsLoading(true);
+      const base64Data = await stampService.getImageData(stamp.id);
+      setSelectedStampUrl(base64Data);
+      setSelectedStampId(stamp.id);
+    } catch (err) {
+      console.error('Failed to fetch stamp image data:', err);
+      alert('Gagal memuat detail gambar stempel');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleDeleteStamp = async (e: React.MouseEvent, id: number) => {
     e.stopPropagation();
     if (!confirm('Hapus stempel ini?')) return;
     try {
       await stampService.delete(id);
       setSavedStamps((prev) => prev.filter((stamp) => stamp.id !== id));
+      if (selectedStampId === id) {
+        setSelectedStampUrl('');
+        setSelectedStampId(null);
+      }
     } catch {
       alert('Gagal menghapus stempel');
     }
@@ -188,7 +246,9 @@ const SignatureModal: React.FC<SignatureModalProps> = ({ isOpen, onClose, onConf
     if (isOpen) {
       setActiveTab('signature');
       setSelectedSignatureUrl('');
+      setSelectedSignatureId(null);
       setSelectedStampUrl('');
+      setSelectedStampId(null);
       void fetchAssets();
     }
   }, [isOpen]);
@@ -294,7 +354,7 @@ const SignatureModal: React.FC<SignatureModalProps> = ({ isOpen, onClose, onConf
                       <div className="grid grid-cols-2 gap-4">
                         {savedSignatures.map((sig) => {
                           const url = `${storageBaseUrl}${sig.file_path}`;
-                          const selected = selectedSignatureUrl === url;
+                          const selected = selectedSignatureId === sig.id;
                           return (
                             <button
                               key={sig.id}
@@ -372,12 +432,12 @@ const SignatureModal: React.FC<SignatureModalProps> = ({ isOpen, onClose, onConf
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {savedStamps.map((stamp) => {
                           const url = `${storageBaseUrl}${stamp.file_path}`;
-                          const selected = selectedStampUrl === url;
+                          const selected = selectedStampId === stamp.id;
                           return (
                             <button
                               key={stamp.id}
                               type="button"
-                              onClick={() => setSelectedStampUrl(url)}
+                              onClick={() => handleSelectSavedStamp(stamp)}
                               className={`group relative border-2 rounded-2xl p-4 bg-white hover:border-blue-500 hover:shadow-xl transition-all text-left ${
                                 selected ? 'border-blue-500 shadow-lg' : 'border-gray-100'
                               }`}
