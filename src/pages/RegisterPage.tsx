@@ -234,6 +234,7 @@ const RegisterPage: React.FC = () => {
         if (backendErrors.jenisKelamin) newErrors.jenisKelamin = backendErrors.jenisKelamin[0];
         if (backendErrors.nik) newErrors.NIK = backendErrors.nik[0];
         if (backendErrors.no_kk) newErrors.nomorkk = backendErrors.no_kk[0];
+        if (backendErrors.no_telp) newErrors.nomorHP = backendErrors.no_telp[0];
         if (backendErrors.username) newErrors.username = backendErrors.username[0];
         if (backendErrors.password) newErrors.password = backendErrors.password[0];
         if (backendErrors.alamat) newErrors.alamat = backendErrors.alamat[0];
