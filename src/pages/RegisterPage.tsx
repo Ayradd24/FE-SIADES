@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../lib/api';
 import logoDesaImg from '../assets/logo-desa.png';
@@ -38,11 +38,23 @@ interface PasswordInputProps {
   onToggle: () => void;
   error?: string;
   placeholder?: string;
+  inputRef?: (node: HTMLInputElement | null) => void;
 }
 
 const MAX_NAME_LENGTH = 255;
 const MAX_USERNAME_LENGTH = 255;
 const MAX_ADDRESS_LENGTH = 500;
+const FIELD_ORDER: Array<keyof Omit<RegisterErrors, 'general'>> = [
+  'namaLengkap',
+  'NIK',
+  'nomorkk',
+  'jenisKelamin',
+  'nomorHP',
+  'alamat',
+  'username',
+  'password',
+  'konfirmasiPassword',
+];
 
 // Komponen di LUAR RegisterPage agar tidak di-recreate setiap render
 const PasswordInput = ({
@@ -54,6 +66,7 @@ const PasswordInput = ({
   show,
   onToggle,
   error,
+  inputRef,
   placeholder = '••••••••',
 }: PasswordInputProps) => (
   <div className="mb-4">
@@ -68,6 +81,7 @@ const PasswordInput = ({
         placeholder={placeholder}
         value={value}
         onChange={onChange}
+        ref={inputRef}
         className={`input-field pr-12 ${error ? 'border-red-400 focus:ring-red-300' : ''}`}
       />
       <button
@@ -124,6 +138,29 @@ const RegisterPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showKonfirmasi, setShowKonfirmasi] = useState(false);
   const hasFieldErrors = Object.entries(errors).some(([key, value]) => key !== 'general' && Boolean(value));
+  const fieldRefs = useRef<Partial<Record<keyof Omit<RegisterErrors, 'general'>, HTMLElement | null>>>({});
+
+  const setFieldRef = (field: keyof Omit<RegisterErrors, 'general'>) => (node: HTMLElement | null) => {
+    fieldRefs.current[field] = node;
+  };
+
+  const scrollToFirstError = (nextErrors: RegisterErrors) => {
+    const firstErrorField = FIELD_ORDER.find((field) => Boolean(nextErrors[field]));
+    if (!firstErrorField) return;
+
+    window.requestAnimationFrame(() => {
+      const target = fieldRefs.current[firstErrorField];
+      target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      if (
+        target instanceof HTMLInputElement
+        || target instanceof HTMLSelectElement
+        || target instanceof HTMLTextAreaElement
+      ) {
+        target.focus({ preventScroll: true });
+      }
+    });
+  };
 
   const validate = (): boolean => {
     const newErrors: RegisterErrors = {};
@@ -180,7 +217,12 @@ const RegisterPage: React.FC = () => {
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const isValid = Object.keys(newErrors).length === 0;
+    if (!isValid) {
+      scrollToFirstError(newErrors);
+    }
+
+    return isValid;
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -244,12 +286,14 @@ const RegisterPage: React.FC = () => {
         if (backendErrors.password) newErrors.password = backendErrors.password[0];
         if (backendErrors.alamat) newErrors.alamat = backendErrors.alamat[0];
 
-        setErrors({
+        const mappedErrors = {
           ...newErrors,
           general: Object.keys(newErrors).length === 0
             ? 'Data tidak valid. Silakan periksa kembali inputan Anda.'
             : undefined,
-        });
+        };
+        setErrors(mappedErrors);
+        scrollToFirstError(mappedErrors);
       } else if (err.response?.status === 409) {
         setErrors({ general: 'NIK sudah terdaftar. Silakan gunakan NIK lain.' });
       } else if (err.response?.data?.message) {
@@ -316,6 +360,7 @@ const RegisterPage: React.FC = () => {
                 placeholder="Nama sesuai KTP"
                 value={form.namaLengkap}
                 onChange={handleChange}
+                ref={setFieldRef('namaLengkap')}
                 className={`input-field ${errors.namaLengkap ? 'border-red-400 focus:ring-red-300' : ''}`}
               />
               <div className="flex justify-between items-center mt-1">
@@ -343,6 +388,7 @@ const RegisterPage: React.FC = () => {
                 placeholder="16 digit NIK"
                 value={form.NIK}
                 onChange={handleChange}
+                ref={setFieldRef('NIK')}
                 className={`input-field ${errors.NIK ? 'border-red-400 focus:ring-red-300' : ''}`}
               />
               {/* Counter digit NIK */}
@@ -373,6 +419,7 @@ const RegisterPage: React.FC = () => {
                 placeholder="16 digit Nomor Kartu Keluarga"
                 value={form.nomorkk}
                 onChange={handleChange}
+                ref={setFieldRef('nomorkk')}
                 className={`input-field ${errors.nomorkk ? 'border-red-400 focus:ring-red-300' : ''}`}
               />
               {/* Counter digit KK */}
@@ -398,6 +445,7 @@ const RegisterPage: React.FC = () => {
                 name="jenisKelamin"
                 value={form.jenisKelamin}
                 onChange={(e) => setForm((prev) => ({ ...prev, jenisKelamin: e.target.value as '' | 'L' | 'P' }))}
+                ref={setFieldRef('jenisKelamin')}
                 className={`input-field ${errors.jenisKelamin ? 'border-red-400 focus:ring-red-300' : ''}`}
               >
                 <option value="">Pilih jenis kelamin</option>
@@ -424,6 +472,7 @@ const RegisterPage: React.FC = () => {
                 placeholder="Contoh: 08xxxxxxxxxx"
                 value={form.nomorHP}
                 onChange={handleChange}
+                ref={setFieldRef('nomorHP')}
                 className={`input-field ${errors.nomorHP ? 'border-red-400 focus:ring-red-300' : ''}`}
               />
               <div className="flex justify-between items-center mt-1">
@@ -454,6 +503,7 @@ const RegisterPage: React.FC = () => {
                 autoComplete="street-address"
                 placeholder="Masukkan alamat lengkap"
                 value={form.alamat}
+                ref={setFieldRef('alamat')}
                 onChange={(e) => {
                   setForm((prev) => ({ ...prev, alamat: e.target.value }));
                   if (errors.alamat) {
@@ -486,6 +536,7 @@ const RegisterPage: React.FC = () => {
                 placeholder="Masukan username"
                 value={form.username}
                 onChange={handleChange}
+                ref={setFieldRef('username')}
                 className={`input-field ${errors.username ? 'border-red-400 focus:ring-red-300' : ''}`}
               />
               <div className="flex justify-between items-center mt-1">
@@ -507,6 +558,7 @@ const RegisterPage: React.FC = () => {
               show={showPassword}
               onToggle={() => setShowPassword((v) => !v)}
               error={errors.password}
+              inputRef={setFieldRef('password')}
             />
 
             {/* Password strength indicator */}
@@ -543,6 +595,7 @@ const RegisterPage: React.FC = () => {
               onToggle={() => setShowKonfirmasi((v) => !v)}
               error={errors.konfirmasiPassword}
               placeholder="Ulangi password"
+              inputRef={setFieldRef('konfirmasiPassword')}
             />
 
             <button
