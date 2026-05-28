@@ -40,6 +40,10 @@ interface PasswordInputProps {
   placeholder?: string;
 }
 
+const MAX_NAME_LENGTH = 255;
+const MAX_USERNAME_LENGTH = 255;
+const MAX_ADDRESS_LENGTH = 500;
+
 // Komponen di LUAR RegisterPage agar tidak di-recreate setiap render
 const PasswordInput = ({
   id,
@@ -119,6 +123,7 @@ const RegisterPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showKonfirmasi, setShowKonfirmasi] = useState(false);
+  const hasFieldErrors = Object.entries(errors).some(([key, value]) => key !== 'general' && Boolean(value));
 
   const validate = (): boolean => {
     const newErrors: RegisterErrors = {};
@@ -241,7 +246,9 @@ const RegisterPage: React.FC = () => {
 
         setErrors({
           ...newErrors,
-          general: 'Data tidak valid. Silakan periksa kembali inputan Anda.',
+          general: Object.keys(newErrors).length === 0
+            ? 'Data tidak valid. Silakan periksa kembali inputan Anda.'
+            : undefined,
         });
       } else if (err.response?.status === 409) {
         setErrors({ general: 'NIK sudah terdaftar. Silakan gunakan NIK lain.' });
@@ -288,7 +295,7 @@ const RegisterPage: React.FC = () => {
             Buat Akun Baru
           </h2>
 
-          {errors.general && (
+          {errors.general && !hasFieldErrors && (
             <div className="mb-5 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm text-center animate-fade-in">
               {errors.general}
             </div>
@@ -305,14 +312,20 @@ const RegisterPage: React.FC = () => {
                 name="namaLengkap"
                 type="text"
                 autoComplete="name"
+                maxLength={MAX_NAME_LENGTH}
                 placeholder="Nama sesuai KTP"
                 value={form.namaLengkap}
                 onChange={handleChange}
                 className={`input-field ${errors.namaLengkap ? 'border-red-400 focus:ring-red-300' : ''}`}
               />
-              {errors.namaLengkap && (
-                <p className="mt-1 text-xs text-red-500">{errors.namaLengkap}</p>
-              )}
+              <div className="flex justify-between items-center mt-1">
+                {errors.namaLengkap ? (
+                  <p className="text-xs text-red-500">{errors.namaLengkap}</p>
+                ) : (
+                  <span />
+                )}
+                <p className="text-xs text-gray-400">{form.namaLengkap.length}/{MAX_NAME_LENGTH}</p>
+              </div>
             </div>
 
             {/* NIK */}
@@ -340,6 +353,7 @@ const RegisterPage: React.FC = () => {
                   <span />
                 )}
                 <p className={`text-xs ml-auto ${form.NIK.length === 16 ? 'text-green-500' : 'text-gray-400'}`}>
+                  {form.NIK.length}/16 digit
                 </p>
               </div>
             </div>
@@ -369,6 +383,7 @@ const RegisterPage: React.FC = () => {
                   <span />
                 )}
                 <p className={`text-xs ml-auto ${form.nomorkk.length === 16 ? 'text-green-500' : 'text-gray-400'}`}>
+                  {form.nomorkk.length}/16 digit
                 </p>
               </div>
             </div>
@@ -421,6 +436,7 @@ const RegisterPage: React.FC = () => {
                   ? 'text-green-500'
                   : 'text-gray-400'
                   }`}>
+                  {form.nomorHP.length}/13 digit
                 </p>
               </div>
             </div>
@@ -434,6 +450,7 @@ const RegisterPage: React.FC = () => {
                 id="alamat"
                 name="alamat"
                 rows={3}
+                maxLength={MAX_ADDRESS_LENGTH}
                 autoComplete="street-address"
                 placeholder="Masukkan alamat lengkap"
                 value={form.alamat}
@@ -445,9 +462,14 @@ const RegisterPage: React.FC = () => {
                 }}
                 className={`input-field resize-none ${errors.alamat ? 'border-red-400 focus:ring-red-300' : ''}`}
               />
-              {errors.alamat && (
-                <p className="mt-1 text-xs text-red-500">{errors.alamat}</p>
-              )}
+              <div className="flex justify-between items-center mt-1">
+                {errors.alamat ? (
+                  <p className="text-xs text-red-500">{errors.alamat}</p>
+                ) : (
+                  <span />
+                )}
+                <p className="text-xs text-gray-400">{form.alamat.length}/{MAX_ADDRESS_LENGTH}</p>
+              </div>
             </div>
 
             {/* Username */}
@@ -460,14 +482,20 @@ const RegisterPage: React.FC = () => {
                 name="username"
                 type="text"
                 autoComplete="username"
+                maxLength={MAX_USERNAME_LENGTH}
                 placeholder="Masukan username"
                 value={form.username}
                 onChange={handleChange}
                 className={`input-field ${errors.username ? 'border-red-400 focus:ring-red-300' : ''}`}
               />
-              {errors.username && (
-                <p className="mt-1 text-xs text-red-500">{errors.username}</p>
-              )}
+              <div className="flex justify-between items-center mt-1">
+                {errors.username ? (
+                  <p className="text-xs text-red-500">{errors.username}</p>
+                ) : (
+                  <span />
+                )}
+                <p className="text-xs text-gray-400">{form.username.length}/{MAX_USERNAME_LENGTH}</p>
+              </div>
             </div>
 
             <PasswordInput
