@@ -221,7 +221,7 @@ const Dashboard: React.FC = () => {
                   <th className="text-left px-6 py-3 text-sm font-semibold">Nama Pemohon</th>
                   <th className="text-left px-6 py-3 text-sm font-semibold">Jenis Surat</th>
                   <th className="text-left px-6 py-3 text-sm font-semibold">Tanggal</th>
-                  <th className="text-left px-6 py-3 text-sm font-semibold">Status</th>
+                  <th className="text-center px-6 py-3 text-sm font-semibold">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -231,7 +231,7 @@ const Dashboard: React.FC = () => {
                     <td className="px-6 py-3 text-sm font-medium text-gray-800">{surat.nama_pemohon}</td>
                     <td className="px-6 py-3 text-sm text-gray-600">{surat.jenis_surat}</td>
                     <td className="px-6 py-3 text-sm text-gray-600">{formatDate(surat.created_at)}</td>
-                    <td className="px-6 py-3">{statusBadge(surat.status)}</td>
+                    <td className="px-6 py-3 text-center">{statusBadge(surat.status)}</td>
                   </tr>
                 ))}
               </tbody>
