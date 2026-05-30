@@ -367,20 +367,62 @@ const DataWarga: React.FC = () => {
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
               <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Lengkap</label>
-              <input required className="input-field" placeholder="Nama lengkap warga" value={form.namaLengkap} onChange={(e) => setForm({ ...form, namaLengkap: e.target.value })} />
+              <input
+                required
+                className="input-field"
+                placeholder="Nama lengkap warga"
+                maxLength={255}
+                value={form.namaLengkap}
+                onChange={(e) => setForm({ ...form, namaLengkap: e.target.value })}
+              />
+              <div className="flex justify-between items-center mt-1">
+                <span />
+                <p className="text-xs text-gray-400">{(form.namaLengkap || '').length}/255</p>
+              </div>
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">NIK</label>
-              <input required className="input-field" placeholder="16 digit NIK" maxLength={16} value={form.nik} onChange={(e) => setForm({ ...form, nik: e.target.value })} />
+              <input
+                required
+                className="input-field"
+                placeholder="16 digit NIK"
+                maxLength={16}
+                value={form.nik}
+                onChange={(e) => {
+                  const digitsOnly = e.target.value.replace(/\D/g, '');
+                  if (digitsOnly.length <= 16) {
+                    setForm({ ...form, nik: digitsOnly });
+                  }
+                }}
+              />
+              <div className="flex justify-between items-center mt-1">
+                <span />
+                <p className={`text-xs ${(form.nik || '').length === 16 ? 'text-green-500' : 'text-gray-400'}`}>
+                  {(form.nik || '').length}/16 digit
+                </p>
+              </div>
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">No. Kartu Keluarga</label>
-              <input required className="input-field" placeholder="16 digit No. KK" maxLength={16} value={form.nomorKK} onChange={(e) => {
-                const digitsOnly = e.target.value.replace(/\D/g, '');
-                if (digitsOnly.length <= 16) {
-                  setForm({ ...form, nomorKK: digitsOnly });
-                }
-              }} />
+              <input
+                required
+                className="input-field"
+                placeholder="16 digit No. KK"
+                maxLength={16}
+                value={form.nomorKK}
+                onChange={(e) => {
+                  const digitsOnly = e.target.value.replace(/\D/g, '');
+                  if (digitsOnly.length <= 16) {
+                    setForm({ ...form, nomorKK: digitsOnly });
+                  }
+                }}
+              />
+              <div className="flex justify-between items-center mt-1">
+                <span />
+                <p className={`text-xs ${(form.nomorKK || '').length === 16 ? 'text-green-500' : 'text-gray-400'}`}>
+                  {(form.nomorKK || '').length}/16 digit
+                </p>
+              </div>
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Nomor WA</label>
@@ -411,12 +453,13 @@ const DataWarga: React.FC = () => {
                       ? 'Minimal 10 digit'
                       : 'Contoh: 081234567890'}
                 </p>
-                <span className={`text-xs font-medium ${form.nomorWA.length >= 10 && form.nomorWA.length <= 13
+                <span className={`text-xs font-medium ${(form.nomorWA || '').length >= 10 && (form.nomorWA || '').length <= 13
                   ? 'text-green-500'
-                  : form.nomorWA.length > 0
+                  : (form.nomorWA || '').length > 0
                     ? 'text-red-500'
                     : 'text-gray-400'
                   }`}>
+                  {(form.nomorWA || '').length}/13 digit
                 </span>
               </div>
             </div>
@@ -429,7 +472,19 @@ const DataWarga: React.FC = () => {
 
             <div className="col-span-2">
               <label className="block text-sm font-semibold text-gray-700 mb-1">Alamat</label>
-              <textarea required className="input-field" placeholder="Alamat lengkap" rows={3} value={form.alamat} onChange={(e) => setForm({ ...form, alamat: e.target.value })} />
+              <textarea
+                required
+                className="input-field resize-none"
+                placeholder="Alamat lengkap"
+                rows={3}
+                maxLength={500}
+                value={form.alamat}
+                onChange={(e) => setForm({ ...form, alamat: e.target.value })}
+              />
+              <div className="flex justify-between items-center mt-1">
+                <span />
+                <p className="text-xs text-gray-400">{(form.alamat || '').length}/500</p>
+              </div>
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Jenis Kelamin</label>
@@ -449,7 +504,18 @@ const DataWarga: React.FC = () => {
             </div>
             <div className="col-span-2">
               <label className="block text-sm font-semibold text-gray-700 mb-1">Email</label>
-              <input type="email" className="input-field" placeholder="email@contoh.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+              <input
+                type="email"
+                className="input-field"
+                placeholder="email@contoh.com"
+                maxLength={255}
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+              />
+              <div className="flex justify-between items-center mt-1">
+                <span />
+                <p className="text-xs text-gray-400">{(form.email || '').length}/255</p>
+              </div>
             </div>
           </div>
           <div className="flex gap-3 pt-2">

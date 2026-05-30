@@ -221,9 +221,14 @@ const ProfilSaya: React.FC = () => {
               value={form.namaLengkap}
               onChange={handleChange}
               required
+              maxLength={255}
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all"
               disabled={fetching}
             />
+            <div className="flex justify-between items-center mt-1">
+              <span />
+              <p className="text-xs text-gray-400">{(form.namaLengkap || '').length}/255</p>
+            </div>
           </div>
 
           <div>
@@ -235,7 +240,10 @@ const ProfilSaya: React.FC = () => {
               readOnly
               className="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-500 rounded-xl outline-none cursor-not-allowed"
             />
-            <p className="text-xs text-gray-400 mt-1">NIK tidak dapat diubah secara mandiri. Hubungi admin desa jika ada kesalahan.</p>
+            <div className="flex justify-between items-center mt-1">
+              <p className="text-xs text-gray-400">NIK tidak dapat diubah secara mandiri. Hubungi admin desa jika ada kesalahan.</p>
+              <p className="text-xs text-gray-400">{(form.nik || '').length}/16 digit</p>
+            </div>
           </div>
 
           <div>
@@ -247,7 +255,10 @@ const ProfilSaya: React.FC = () => {
               readOnly
               className="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-500 rounded-xl outline-none cursor-not-allowed"
             />
-            <p className="text-xs text-gray-400 mt-1">Nomor Kartu Keluarga tidak dapat diubah secara mandiri. Hubungi admin desa jika ada kesalahan.</p>
+            <div className="flex justify-between items-center mt-1">
+              <p className="text-xs text-gray-400">Nomor Kartu Keluarga tidak dapat diubah secara mandiri. Hubungi admin desa jika ada kesalahan.</p>
+              <p className="text-xs text-gray-400">{(form.nomorkk || '').length}/16 digit</p>
+            </div>
           </div>
 
           <div>
@@ -276,6 +287,7 @@ const ProfilSaya: React.FC = () => {
                     ? 'Nomor HP minimal 10 digit'
                     : 'Contoh: 081234567890'}
               </p>
+              <p className="text-xs text-gray-400">{(form.nomorhp || '').length}/13 digit</p>
             </div>
           </div>
 
@@ -287,9 +299,14 @@ const ProfilSaya: React.FC = () => {
               value={form.username}
               onChange={handleChange}
               required
+              maxLength={255}
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all"
               disabled={fetching}
             />
+            <div className="flex justify-between items-center mt-1">
+              <span />
+              <p className="text-xs text-gray-400">{(form.username || '').length}/255</p>
+            </div>
           </div>
 
           <div>
@@ -300,10 +317,15 @@ const ProfilSaya: React.FC = () => {
               value={form.alamat}
               onChange={handleChange}
               required
+              maxLength={500}
               placeholder="Alamat lengkap"
-              className={`w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all ${!form.alamat.trim() && form.alamat !== undefined ? 'border-red-400' : 'border-gray-300'}`}
+              className={`w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all resize-none ${!form.alamat.trim() && form.alamat !== undefined ? 'border-red-400' : 'border-gray-300'}`}
               disabled={fetching}
             ></textarea>
+            <div className="flex justify-between items-center mt-1">
+              <span />
+              <p className="text-xs text-gray-400">{(form.alamat || '').length}/500</p>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -355,20 +377,24 @@ const ProfilSaya: React.FC = () => {
               value={form.email}
               onChange={handleChange}
               disabled={fetching}
+              maxLength={255}
               placeholder="email@contoh.com"
               className={`w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all ${form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)
                 ? 'border-red-400'
                 : 'border-gray-300'
                 }`}
             />
-            <p className={`text-xs mt-1 ${form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)
-              ? 'text-red-500'
-              : 'text-gray-400'
-              }`}>
-              {form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)
-                ? 'Format email tidak valid'
-                : ''}
-            </p>
+            <div className="flex justify-between items-center mt-1">
+              <p className={`text-xs ${form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)
+                ? 'text-red-500'
+                : 'text-gray-400'
+                }`}>
+                {form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)
+                  ? 'Format email tidak valid'
+                  : ''}
+              </p>
+              <p className="text-xs text-gray-400">{(form.email || '').length}/255</p>
+            </div>
           </div>
 
           <div className="pt-4 border-t border-gray-100 flex justify-end">

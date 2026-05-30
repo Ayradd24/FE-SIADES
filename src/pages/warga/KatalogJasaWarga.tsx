@@ -292,7 +292,7 @@ const KatalogJasaWarga: React.FC = () => {
               value={form.deskripsi}
               onChange={(e) => setForm((prev) => ({ ...prev, deskripsi: e.target.value }))}
               placeholder="Jelaskan jasa yang ditawarkan..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition-all"
+              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition-all resize-none"
             ></textarea>
           </div>
 
@@ -300,6 +300,7 @@ const KatalogJasaWarga: React.FC = () => {
             <div>
               <label className="block text-sm font-semibold text-[#1e3a5f] mb-2">Perkiraan Harga</label>
               <input
+                required
                 type="number"
                 min="0"
                 step="500"
@@ -315,22 +316,21 @@ const KatalogJasaWarga: React.FC = () => {
             <div>
               <label className="block text-sm font-semibold text-[#1e3a5f] mb-2">Kontak WhatsApp</label>
               <input
+                required
                 type="text"
                 value={form.kontak_wa}
                 onChange={(e) => handleKontakWaChange(e.target.value)}
                 placeholder="08xxxxxxxxxx"
                 maxLength={13}
-                className={`w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition-all ${
-                  form.kontak_wa && (!form.kontak_wa.startsWith('08') || form.kontak_wa.length < 10)
+                className={`w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition-all ${form.kontak_wa && (!form.kontak_wa.startsWith('08') || form.kontak_wa.length < 10)
                     ? 'border-red-400'
                     : 'border-gray-300'
-                }`}
+                  }`}
               />
-              <p className={`text-xs mt-1 ${
-                form.kontak_wa && (!form.kontak_wa.startsWith('08') || form.kontak_wa.length < 10)
+              <p className={`text-xs mt-1 ${form.kontak_wa && (!form.kontak_wa.startsWith('08') || form.kontak_wa.length < 10)
                   ? 'text-red-500'
                   : 'text-gray-500'
-              }`}>
+                }`}>
                 {form.kontak_wa && !form.kontak_wa.startsWith('08')
                   ? 'Nomor harus diawali 08'
                   : form.kontak_wa && form.kontak_wa.length < 10
@@ -343,6 +343,7 @@ const KatalogJasaWarga: React.FC = () => {
           <div>
             <label className="block text-sm font-semibold text-[#1e3a5f] mb-2">Upload Foto Jasa (Opsional)</label>
             <input
+              required
               type="file"
               accept="image/png,image/jpeg,image/jpg"
               onChange={handleGambarChange}
