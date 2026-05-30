@@ -8,16 +8,18 @@ import { useToast } from '../../hooks/useToast';
 
 const MAX_PDF_SIZE_BYTES = 1536 * 1024;
 
+interface JenisSuratOption {
+  id: number;
+  nama: string;
+}
+
 const PengajuanSurat: React.FC = () => {
   const { toasts, showToast, removeToast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [jenisSuratOptions, setJenisSuratOptions] = useState<string[]>([
-    'Surat Keterangan Usaha',
-    'Surat Keterangan Domisili',
-    'Surat Keterangan Tidak Mampu',
-  ]);
+  const [loadingJenisSurat, setLoadingJenisSurat] = useState(true);
+  const [jenisSuratOptions, setJenisSuratOptions] = useState<JenisSuratOption[]>([]);
 
-  const [form, setForm] = useState({ jenisSurat: 'Surat Keterangan Usaha' });
+  const [form, setForm] = useState({ jenisSuratId: '' });
   const [file, setFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -29,17 +31,27 @@ const PengajuanSurat: React.FC = () => {
     const fetchJenisSurat = async () => {
       try {
         const res = await api.get('/jenis-surat');
-        const names = (res.data ?? [])
-          .map((item: { nama?: string }) => item.nama)
-          .filter((name: string | undefined): name is string => Boolean(name));
-        if (names.length > 0) {
-          setJenisSuratOptions(names);
-          setForm((prev) => ({ ...prev, jenisSurat: names[0] }));
-        }
-      } catch { /* fallback */ }
+        const options = (res.data ?? [])
+          .map((item: { id?: number; nama?: string }) => ({
+            id: Number(item.id),
+            nama: item.nama,
+          }))
+          .filter((item: { id: number; nama?: string }): item is JenisSuratOption => (
+            Number.isInteger(item.id) && item.id > 0 && Boolean(item.nama)
+          ));
+
+        setJenisSuratOptions(options);
+        setForm({ jenisSuratId: options[0]?.id ? String(options[0].id) : '' });
+      } catch {
+        setJenisSuratOptions([]);
+        setForm({ jenisSuratId: '' });
+        showToast('Gagal memuat jenis surat.', 'error');
+      } finally {
+        setLoadingJenisSurat(false);
+      }
     };
     fetchJenisSurat();
-  }, []);
+  }, [showToast]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -73,17 +85,18 @@ const PengajuanSurat: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.jenisSuratId) { showToast('Jenis surat belum tersedia.', 'error'); return; }
     if (!file) { showToast('Dokumen pendukung harus diunggah', 'error'); return; }
     setLoading(true);
     try {
       const formData = new FormData();
-      formData.append('jenis_surat', form.jenisSurat);
+      formData.append('jenis_surat_id', form.jenisSuratId);
       formData.append('file', file);
       await api.post('/warga/pengajuan-surat', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       showToast('Pengajuan Surat berhasil dikirim', 'success');
-      setForm({ jenisSurat: jenisSuratOptions[0] ?? 'Surat Keterangan Usaha' });
+      setForm({ jenisSuratId: jenisSuratOptions[0]?.id ? String(jenisSuratOptions[0].id) : '' });
       setFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
 
@@ -114,15 +127,23 @@ const PengajuanSurat: React.FC = () => {
           <div>
             <label className="block text-sm font-semibold text-[#1e3a5f] mb-2">Jenis Surat</label>
             <select
-              name="jenisSurat"
-              value={form.jenisSurat}
+              name="jenisSuratId"
+              value={form.jenisSuratId}
               onChange={handleChange}
+              disabled={loadingJenisSurat || jenisSuratOptions.length === 0}
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition-all"
             >
+              {loadingJenisSurat && <option value="">Memuat jenis surat...</option>}
+              {!loadingJenisSurat && jenisSuratOptions.length === 0 && (
+                <option value="">Belum ada jenis surat tersedia</option>
+              )}
               {jenisSuratOptions.map((jenis) => (
-                <option key={jenis} value={jenis}>{jenis}</option>
+                <option key={jenis.id} value={jenis.id}>{jenis.nama}</option>
               ))}
             </select>
+            {!loadingJenisSurat && jenisSuratOptions.length === 0 && (
+              <p className="text-xs text-red-500 mt-1">Pengajuan belum bisa dikirim karena jenis surat belum tersedia.</p>
+            )}
           </div>
 
           <div>
@@ -144,7 +165,7 @@ const PengajuanSurat: React.FC = () => {
           </div>
 
           <div className="pt-4">
-            <Button type="submit" disabled={loading} className="w-full">
+            <Button type="submit" disabled={loading || loadingJenisSurat || jenisSuratOptions.length === 0} className="w-full">
               {loading ? 'Mengirim...' : 'Kirim Pengajuan'}
             </Button>
           </div>
