@@ -83,9 +83,10 @@ const DashboardWarga: React.FC = () => {
   }, [showToast]);
 
   return (
-    <div className="space-y-6">
+    <>
       <ToastContainer toasts={toasts} onRemove={removeToast} />
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-blue-50">
+      <div className="space-y-6">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-blue-50">
         <h1 className="text-2xl font-bold text-[#1e3a5f]">Selamat Datang, {userName}!</h1>
         <p className="text-gray-500 mt-1">Ini adalah ringkasan aktivitas dan status layanan Anda di Desa Karangasem.</p>
       </div>
@@ -160,7 +161,8 @@ const DashboardWarga: React.FC = () => {
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 

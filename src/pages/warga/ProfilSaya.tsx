@@ -9,6 +9,14 @@ const MAX_PROFILE_PHOTO_SIZE_BYTES = 2 * 1024 * 1024;
 const ALLOWED_PROFILE_PHOTO_TYPES = ['image/jpeg', 'image/png'];
 const storageBaseUrl = BASE_URL.replace(/\/api$/, '') + '/storage/';
 
+interface ProfilErrors {
+  namaLengkap?: string;
+  nomorhp?: string;
+  username?: string;
+  alamat?: string;
+  email?: string;
+}
+
 const ProfilSaya: React.FC = () => {
   const { toasts, showToast, removeToast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -17,6 +25,7 @@ const ProfilSaya: React.FC = () => {
   const [profilePhoto, setProfilePhoto] = useState<string | null>(authStorage.getProfilePhoto());
   const [photoPreviewOpen, setPhotoPreviewOpen] = useState(false);
   const photoInputRef = useRef<HTMLInputElement | null>(null);
+  const [errors, setErrors] = useState<ProfilErrors>({});
   const [form, setForm] = useState({
     namaLengkap: '',
     nik: '',
@@ -33,15 +42,15 @@ const ProfilSaya: React.FC = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
 
+    let sanitizedValue = value;
     if (name === 'nomorhp') {
-      const digitsOnly = value.replace(/\D/g, '');
-      if (digitsOnly.length <= 13) {
-        setForm({ ...form, nomorhp: digitsOnly });
-      }
-      return;
+      sanitizedValue = value.replace(/\D/g, '').slice(0, 13);
     }
 
-    setForm({ ...form, [name]: value });
+    setForm((prev) => ({ ...prev, [name]: sanitizedValue }));
+    if (errors[name as keyof ProfilErrors]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
   };
 
   useEffect(() => {
@@ -121,23 +130,39 @@ const ProfilSaya: React.FC = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const validate = (): boolean => {
+    const newErrors: ProfilErrors = {};
 
-    if (form.nomorhp && (form.nomorhp.length < 10 || form.nomorhp.length > 13 || !form.nomorhp.startsWith('08'))) {
-      showToast('Nomor HP harus diawali 08 dan terdiri dari 10-13 digit', 'error');
-      return;
+    if (!form.namaLengkap.trim()) {
+      newErrors.namaLengkap = 'Nama lengkap tidak boleh kosong';
+    }
+
+    if (!form.username.trim()) {
+      newErrors.username = 'Username tidak boleh kosong';
     }
 
     if (!form.alamat.trim()) {
-      showToast('Alamat wajib diisi', 'error');
-      return;
+      newErrors.alamat = 'Alamat tidak boleh kosong';
+    }
+
+    if (!form.nomorhp) {
+      newErrors.nomorhp = 'Nomor HP tidak boleh kosong';
+    } else if (form.nomorhp.length < 10 || form.nomorhp.length > 13 || !form.nomorhp.startsWith('08')) {
+      newErrors.nomorhp = 'Nomor HP harus diawali 08 dan terdiri dari 10-13 digit';
     }
 
     if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      showToast('Format email tidak valid', 'error');
-      return;
+      newErrors.email = 'Format email tidak valid';
     }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validate()) return;
 
     setLoading(true);
     try {
@@ -168,9 +193,10 @@ const ProfilSaya: React.FC = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <>
       <ToastContainer toasts={toasts} onRemove={removeToast} />
-      <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-blue-50">
+      <div className="max-w-2xl mx-auto space-y-6">
+        <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-blue-50">
         <h1 className="text-2xl font-bold text-[#1e3a5f] mb-2">Profil Saya</h1>
         <p className="text-gray-500 mb-8">Kelola informasi data diri Anda.</p>
 
@@ -212,7 +238,7 @@ const ProfilSaya: React.FC = () => {
           <p className="text-xs text-gray-400 mt-1">JPG/PNG, maksimal 2 MB</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} noValidate className="space-y-5">
           <div>
             <label className="block text-sm font-semibold text-[#1e3a5f] mb-1">Nama Lengkap</label>
             <input
@@ -220,13 +246,18 @@ const ProfilSaya: React.FC = () => {
               name="namaLengkap"
               value={form.namaLengkap}
               onChange={handleChange}
-              required
               maxLength={255}
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all"
+              className={`w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all ${
+                errors.namaLengkap ? 'border-red-400 focus:ring-red-300' : 'border-gray-300'
+              }`}
               disabled={fetching}
             />
             <div className="flex justify-between items-center mt-1">
-              <span />
+              {errors.namaLengkap ? (
+                <p className="text-xs text-red-500">{errors.namaLengkap}</p>
+              ) : (
+                <span />
+              )}
               <p className="text-xs text-gray-400">{(form.namaLengkap || '').length}/255</p>
             </div>
           </div>
@@ -271,22 +302,16 @@ const ProfilSaya: React.FC = () => {
               disabled={fetching}
               placeholder="08xxxxxxxxxx"
               maxLength={13}
-              className={`w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all ${form.nomorhp && (!form.nomorhp.startsWith('08') || form.nomorhp.length < 10)
-                ? 'border-red-400'
-                : 'border-gray-300'
-                }`}
+              className={`w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all ${
+                errors.nomorhp ? 'border-red-400 focus:ring-red-300' : 'border-gray-300'
+              }`}
             />
             <div className="flex justify-between items-center mt-1">
-              <p className={`text-xs ${form.nomorhp && (!form.nomorhp.startsWith('08') || form.nomorhp.length < 10)
-                ? 'text-red-500'
-                : 'text-gray-400'
-                }`}>
-                {form.nomorhp && !form.nomorhp.startsWith('08')
-                  ? 'Nomor HP harus diawali dengan 08'
-                  : form.nomorhp && form.nomorhp.length < 10
-                    ? 'Nomor HP minimal 10 digit'
-                    : 'Contoh: 081234567890'}
-              </p>
+              {errors.nomorhp ? (
+                <p className="text-xs text-red-500">{errors.nomorhp}</p>
+              ) : (
+                <p className="text-xs text-gray-400">Contoh: 081234567890</p>
+              )}
               <p className="text-xs text-gray-400">{(form.nomorhp || '').length}/13 digit</p>
             </div>
           </div>
@@ -298,13 +323,18 @@ const ProfilSaya: React.FC = () => {
               name="username"
               value={form.username}
               onChange={handleChange}
-              required
               maxLength={255}
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all"
+              className={`w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all ${
+                errors.username ? 'border-red-400 focus:ring-red-300' : 'border-gray-300'
+              }`}
               disabled={fetching}
             />
             <div className="flex justify-between items-center mt-1">
-              <span />
+              {errors.username ? (
+                <p className="text-xs text-red-500">{errors.username}</p>
+              ) : (
+                <span />
+              )}
               <p className="text-xs text-gray-400">{(form.username || '').length}/255</p>
             </div>
           </div>
@@ -316,14 +346,19 @@ const ProfilSaya: React.FC = () => {
               rows={3}
               value={form.alamat}
               onChange={handleChange}
-              required
               maxLength={500}
               placeholder="Alamat lengkap"
-              className={`w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all resize-none ${!form.alamat.trim() && form.alamat !== undefined ? 'border-red-400' : 'border-gray-300'}`}
+              className={`w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition-all resize-none ${
+                errors.alamat ? 'border-red-400 focus:ring-red-300' : 'border-gray-300'
+              }`}
               disabled={fetching}
             ></textarea>
             <div className="flex justify-between items-center mt-1">
-              <span />
+              {errors.alamat ? (
+                <p className="text-xs text-red-500">{errors.alamat}</p>
+              ) : (
+                <span />
+              )}
               <p className="text-xs text-gray-400">{(form.alamat || '').length}/500</p>
             </div>
           </div>
@@ -430,7 +465,8 @@ const ProfilSaya: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 };
 

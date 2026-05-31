@@ -32,6 +32,16 @@ interface WargaForm {
   email: string;
 }
 
+interface WargaErrors {
+  namaLengkap?: string;
+  nik?: string;
+  nomorKK?: string;
+  nomorWA?: string;
+  alamat?: string;
+  jenisKelamin?: string;
+  email?: string;
+}
+
 const emptyForm: WargaForm = {
   namaLengkap: '',
   nomorWA: '',
@@ -69,6 +79,7 @@ const DataWarga: React.FC = () => {
   const [deleteId, setDeleteId] = useState<string | number | null>(null);
   const [detailData, setDetailData] = useState<Warga | null>(null);
   const [form, setForm] = useState<WargaForm>(emptyForm);
+  const [errors, setErrors] = useState<WargaErrors>({});
   const [formLoading, setFormLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
@@ -102,6 +113,7 @@ const DataWarga: React.FC = () => {
   const openCreate = () => {
     setEditData(null);
     setForm(emptyForm);
+    setErrors({});
     setModalOpen(true);
   };
 
@@ -118,6 +130,7 @@ const DataWarga: React.FC = () => {
       tanggalLahir: warga.tanggalLahir ?? '',
       email: warga.email ?? '',
     });
+    setErrors({});
     setModalOpen(true);
   };
 
@@ -130,13 +143,51 @@ const DataWarga: React.FC = () => {
     setDetailData(warga);
   };
 
+  const validate = (): boolean => {
+    const newErrors: WargaErrors = {};
+
+    if (!form.namaLengkap.trim()) {
+      newErrors.namaLengkap = 'Nama lengkap tidak boleh kosong';
+    }
+
+    if (!form.nik) {
+      newErrors.nik = 'NIK tidak boleh kosong';
+    } else if (form.nik.length !== 16) {
+      newErrors.nik = 'NIK harus terdiri dari 16 digit';
+    }
+
+    if (!form.nomorKK) {
+      newErrors.nomorKK = 'Nomor Kartu Keluarga tidak boleh kosong';
+    } else if (form.nomorKK.length !== 16) {
+      newErrors.nomorKK = 'Nomor Kartu Keluarga harus terdiri dari 16 digit';
+    }
+
+    if (!form.nomorWA) {
+      newErrors.nomorWA = 'Nomor WA tidak boleh kosong';
+    } else if (form.nomorWA.length < 10 || form.nomorWA.length > 13 || !form.nomorWA.startsWith('08')) {
+      newErrors.nomorWA = 'Nomor WA harus diawali 08 dan terdiri dari 10-13 digit';
+    }
+
+    if (!form.alamat.trim()) {
+      newErrors.alamat = 'Alamat tidak boleh kosong';
+    }
+
+    if (!form.jenisKelamin) {
+      newErrors.jenisKelamin = 'Jenis kelamin wajib dipilih';
+    }
+
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      newErrors.email = 'Format email tidak valid';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (form.nomorWA && (form.nomorWA.length < 10 || form.nomorWA.length > 13 || !form.nomorWA.startsWith('08'))) {
-      showToast('Nomor WA harus diawali 08 dan terdiri dari 10-13 digit', 'error');
-      return;
-    }
+    if (!validate()) return;
 
     setFormLoading(true);
     try {
@@ -356,35 +407,39 @@ const DataWarga: React.FC = () => {
         )}
       </div>
 
-      {/* Modal Form */}
       <Modal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         title={editData ? 'Edit Data Warga' : 'Tambah Warga Baru'}
         maxWidth="lg"
       >
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
               <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Lengkap</label>
               <input
-                required
-                className="input-field"
+                className={`input-field ${errors.namaLengkap ? 'border-red-400 focus:ring-red-300' : ''}`}
                 placeholder="Nama lengkap warga"
                 maxLength={255}
                 value={form.namaLengkap}
-                onChange={(e) => setForm({ ...form, namaLengkap: e.target.value })}
+                onChange={(e) => {
+                  setForm({ ...form, namaLengkap: e.target.value });
+                  if (errors.namaLengkap) setErrors({ ...errors, namaLengkap: undefined });
+                }}
               />
               <div className="flex justify-between items-center mt-1">
-                <span />
+                {errors.namaLengkap ? (
+                  <p className="text-xs text-red-500">{errors.namaLengkap}</p>
+                ) : (
+                  <span />
+                )}
                 <p className="text-xs text-gray-400">{(form.namaLengkap || '').length}/255</p>
               </div>
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">NIK</label>
               <input
-                required
-                className="input-field"
+                className={`input-field ${errors.nik ? 'border-red-400 focus:ring-red-300' : ''}`}
                 placeholder="16 digit NIK"
                 maxLength={16}
                 value={form.nik}
@@ -392,11 +447,16 @@ const DataWarga: React.FC = () => {
                   const digitsOnly = e.target.value.replace(/\D/g, '');
                   if (digitsOnly.length <= 16) {
                     setForm({ ...form, nik: digitsOnly });
+                    if (errors.nik) setErrors({ ...errors, nik: undefined });
                   }
                 }}
               />
               <div className="flex justify-between items-center mt-1">
-                <span />
+                {errors.nik ? (
+                  <p className="text-xs text-red-500">{errors.nik}</p>
+                ) : (
+                  <span />
+                )}
                 <p className={`text-xs ${(form.nik || '').length === 16 ? 'text-green-500' : 'text-gray-400'}`}>
                   {(form.nik || '').length}/16 digit
                 </p>
@@ -405,8 +465,7 @@ const DataWarga: React.FC = () => {
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">No. Kartu Keluarga</label>
               <input
-                required
-                className="input-field"
+                className={`input-field ${errors.nomorKK ? 'border-red-400 focus:ring-red-300' : ''}`}
                 placeholder="16 digit No. KK"
                 maxLength={16}
                 value={form.nomorKK}
@@ -414,11 +473,16 @@ const DataWarga: React.FC = () => {
                   const digitsOnly = e.target.value.replace(/\D/g, '');
                   if (digitsOnly.length <= 16) {
                     setForm({ ...form, nomorKK: digitsOnly });
+                    if (errors.nomorKK) setErrors({ ...errors, nomorKK: undefined });
                   }
                 }}
               />
               <div className="flex justify-between items-center mt-1">
-                <span />
+                {errors.nomorKK ? (
+                  <p className="text-xs text-red-500">{errors.nomorKK}</p>
+                ) : (
+                  <span />
+                )}
                 <p className={`text-xs ${(form.nomorKK || '').length === 16 ? 'text-green-500' : 'text-gray-400'}`}>
                   {(form.nomorKK || '').length}/16 digit
                 </p>
@@ -427,11 +491,7 @@ const DataWarga: React.FC = () => {
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Nomor WA</label>
               <input
-                required
-                className={`input-field transition-all ${form.nomorWA && (!form.nomorWA.startsWith('08') || form.nomorWA.length < 10)
-                  ? 'border-red-400 focus:ring-red-300'
-                  : ''
-                  }`}
+                className={`input-field ${errors.nomorWA ? 'border-red-400 focus:ring-red-300' : ''}`}
                 placeholder="08xxxxxxxxx"
                 maxLength={13}
                 value={form.nomorWA}
@@ -439,20 +499,16 @@ const DataWarga: React.FC = () => {
                   const digitsOnly = e.target.value.replace(/\D/g, '');
                   if (digitsOnly.length <= 13) {
                     setForm({ ...form, nomorWA: digitsOnly });
+                    if (errors.nomorWA) setErrors({ ...errors, nomorWA: undefined });
                   }
                 }}
               />
               <div className="flex justify-between items-center mt-1">
-                <p className={`text-xs ${form.nomorWA && (!form.nomorWA.startsWith('08') || form.nomorWA.length < 10)
-                  ? 'text-red-500'
-                  : 'text-gray-400'
-                  }`}>
-                  {form.nomorWA && !form.nomorWA.startsWith('08')
-                    ? 'Harus diawali dengan 08'
-                    : form.nomorWA && form.nomorWA.length < 10
-                      ? 'Minimal 10 digit'
-                      : 'Contoh: 081234567890'}
-                </p>
+                {errors.nomorWA ? (
+                  <p className="text-xs text-red-500">{errors.nomorWA}</p>
+                ) : (
+                  <p className="text-xs text-gray-400">Contoh: 081234567890</p>
+                )}
                 <span className={`text-xs font-medium ${(form.nomorWA || '').length >= 10 && (form.nomorWA || '').length <= 13
                   ? 'text-green-500'
                   : (form.nomorWA || '').length > 0
@@ -473,26 +529,42 @@ const DataWarga: React.FC = () => {
             <div className="col-span-2">
               <label className="block text-sm font-semibold text-gray-700 mb-1">Alamat</label>
               <textarea
-                required
-                className="input-field resize-none"
+                className={`input-field resize-none ${errors.alamat ? 'border-red-400 focus:ring-red-300' : ''}`}
                 placeholder="Alamat lengkap"
                 rows={3}
                 maxLength={500}
                 value={form.alamat}
-                onChange={(e) => setForm({ ...form, alamat: e.target.value })}
+                onChange={(e) => {
+                  setForm({ ...form, alamat: e.target.value });
+                  if (errors.alamat) setErrors({ ...errors, alamat: undefined });
+                }}
               />
               <div className="flex justify-between items-center mt-1">
-                <span />
+                {errors.alamat ? (
+                  <p className="text-xs text-red-500">{errors.alamat}</p>
+                ) : (
+                  <span />
+                )}
                 <p className="text-xs text-gray-400">{(form.alamat || '').length}/500</p>
               </div>
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Jenis Kelamin</label>
-              <select required className="input-field" value={form.jenisKelamin} onChange={(e) => setForm({ ...form, jenisKelamin: e.target.value as '' | 'L' | 'P' })}>
+              <select
+                className={`input-field bg-white ${errors.jenisKelamin ? 'border-red-400 focus:ring-red-300' : ''}`}
+                value={form.jenisKelamin}
+                onChange={(e) => {
+                  setForm({ ...form, jenisKelamin: e.target.value as '' | 'L' | 'P' });
+                  if (errors.jenisKelamin) setErrors({ ...errors, jenisKelamin: undefined });
+                }}
+              >
                 <option value="">Pilih jenis kelamin</option>
                 <option value="L">Laki-laki</option>
                 <option value="P">Perempuan</option>
               </select>
+              {errors.jenisKelamin && (
+                <p className="text-xs text-red-500 mt-1">{errors.jenisKelamin}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Tempat Lahir</label>
@@ -506,14 +578,21 @@ const DataWarga: React.FC = () => {
               <label className="block text-sm font-semibold text-gray-700 mb-1">Email</label>
               <input
                 type="email"
-                className="input-field"
+                className={`input-field ${errors.email ? 'border-red-400 focus:ring-red-300' : ''}`}
                 placeholder="email@contoh.com"
                 maxLength={255}
                 value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                onChange={(e) => {
+                  setForm({ ...form, email: e.target.value });
+                  if (errors.email) setErrors({ ...errors, email: undefined });
+                }}
               />
               <div className="flex justify-between items-center mt-1">
-                <span />
+                {errors.email ? (
+                  <p className="text-xs text-red-500">{errors.email}</p>
+                ) : (
+                  <span />
+                )}
                 <p className="text-xs text-gray-400">{(form.email || '').length}/255</p>
               </div>
             </div>

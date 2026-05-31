@@ -46,6 +46,7 @@ const ManajemenPerangkat: React.FC = () => {
   
   const [formLoading, setFormLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchAdmins = useCallback(async () => {
     setLoading(true);
@@ -77,6 +78,7 @@ const ManajemenPerangkat: React.FC = () => {
 
   const handleSearchInput = (q: string) => {
     setSearchQuery(q);
+    setError(null);
 
     // Clear any pending timer
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -107,6 +109,7 @@ const ManajemenPerangkat: React.FC = () => {
     setSearchQuery('');
     setSearchResults([]);
     setSelectedRole('admin');
+    setError(null);
     setModalOpen(true);
   };
 
@@ -118,7 +121,7 @@ const ManajemenPerangkat: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUser) {
-      showToast('Pilih pengguna terlebih dahulu', 'error');
+      setError('Pilih warga terlebih dahulu menggunakan pencarian');
       return;
     }
     setFormLoading(true);
@@ -278,22 +281,26 @@ const ManajemenPerangkat: React.FC = () => {
         onClose={() => !formLoading && setModalOpen(false)}
         title="Berikan Jabatan Admin"
       >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
+        <form onSubmit={handleSubmit} noValidate className="space-y-4">
+          <div className="relative">
             <label className="block text-sm font-medium text-gray-700 mb-1">Cari Warga (Nama/NIK/Username)</label>
             <input
               type="text"
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                error ? 'border-red-400 focus:ring-red-300' : 'border-gray-300'
+              }`}
               placeholder="Ketik minimal 3 karakter..."
               value={searchQuery}
               onChange={(e) => handleSearchInput(e.target.value)}
             />
+            {error && (
+              <p className="text-xs text-red-500 mt-1">{error}</p>
+            )}
             
             {searchLoading && <p className="text-sm text-gray-500 mt-2">Mencari...</p>}
             
             {searchResults.length > 0 && !selectedUser && (
-              <ul className="mt-2 border border-gray-200 rounded-lg divide-y divide-gray-100 max-h-40 overflow-y-auto">
+              <ul className="mt-2 border border-gray-200 rounded-lg divide-y divide-gray-100 max-h-40 overflow-y-auto bg-white absolute z-10 w-full shadow-lg left-0 right-0">
                 {searchResults.map((u) => (
                   <li 
                     key={u.id} 
@@ -302,6 +309,7 @@ const ManajemenPerangkat: React.FC = () => {
                       setSelectedUser(u);
                       setSearchResults([]);
                       setSearchQuery(u.name);
+                      setError(null);
                     }}
                   >
                     <div>
@@ -324,7 +332,10 @@ const ManajemenPerangkat: React.FC = () => {
                 </div>
                 <button 
                   type="button" 
-                  onClick={() => setSelectedUser(null)}
+                  onClick={() => {
+                    setSelectedUser(null);
+                    setSearchQuery('');
+                  }}
                   className="text-xs text-red-600 hover:text-red-800"
                 >
                   Batal Pilih
@@ -338,7 +349,7 @@ const ManajemenPerangkat: React.FC = () => {
             <select
               value={selectedRole}
               onChange={(e) => setSelectedRole(e.target.value as 'admin' | 'super-admin')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
             >
               <option value="admin">Admin Desa</option>
               <option value="super-admin">Kepala Desa (Super Admin)</option>
@@ -349,7 +360,7 @@ const ManajemenPerangkat: React.FC = () => {
             <Button type="button" variant="outline" onClick={() => setModalOpen(false)} disabled={formLoading}>
               Batal
             </Button>
-            <Button type="submit" loading={formLoading} disabled={!selectedUser}>
+            <Button type="submit" loading={formLoading}>
               Simpan Jabatan
             </Button>
           </div>

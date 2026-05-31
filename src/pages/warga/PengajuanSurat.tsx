@@ -115,11 +115,12 @@ const PengajuanSurat: React.FC = () => {
 
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <>
       <ToastContainer toasts={toasts} onRemove={removeToast} />
 
       {/* Form Pengajuan */}
-      <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-blue-50">
+      <div className="max-w-2xl mx-auto space-y-6">
+        <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-blue-50">
         <h1 className="text-2xl font-bold text-[#1e3a5f] mb-2">Pengajuan Surat</h1>
         <p className="text-gray-500 mb-6">Silakan lengkapi formulir di bawah ini untuk mengajukan pembuatan surat.</p>
 
@@ -171,7 +172,8 @@ const PengajuanSurat: React.FC = () => {
           </div>
         </form>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 
