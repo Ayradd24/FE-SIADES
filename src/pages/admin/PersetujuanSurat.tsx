@@ -230,7 +230,9 @@ const PersetujuanSurat: React.FC = () => {
       <ToastContainer toasts={toasts} onRemove={removeToast} />
       <div className="mb-6 flex items-center justify-between gap-3">
         <h1 className="text-3xl font-extrabold text-[#1e3a5f]">Persetujuan Surat</h1>
-        <Button onClick={() => setIsJenisSuratModalOpen(true)}>Kelola Jenis Surat</Button>
+        {isSuperAdmin && (
+          <Button onClick={() => setIsJenisSuratModalOpen(true)}>Kelola Jenis Surat</Button>
+        )}
       </div>
 
       <Modal
