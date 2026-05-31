@@ -129,7 +129,7 @@ const GantiPassword: React.FC = () => {
 
       {/* Change Password Card */}
       <div className="flex-1 flex items-center justify-center px-4 py-8">
-        <div className="bg-white rounded-3xl shadow-lg w-full max-w-lg p-10">
+        <div className="bg-white rounded-3xl shadow-lg w-full max-w-lg p-10 animate-page-fade-up">
           {/* Icon */}
           <div className="flex justify-center mb-5">
             <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center">

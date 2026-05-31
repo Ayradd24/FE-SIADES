@@ -332,7 +332,7 @@ const RegisterPage: React.FC = () => {
 
       {/* Register Card */}
       <div className="flex-1 flex items-center justify-center px-4 py-8">
-        <div className="bg-white rounded-3xl shadow-lg w-full max-w-3xl p-10">
+        <div className="bg-white rounded-3xl shadow-lg w-full max-w-3xl p-10 animate-page-fade-up">
           <div className="flex flex-col items-center mb-8">
             <h2 className="text-center text-2xl font-extrabold text-[#1e3a5f] mb-1">
               Buat Akun Baru
