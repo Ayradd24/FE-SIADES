@@ -54,6 +54,15 @@ const storageBaseUrl = BASE_URL.replace(/\/api$/, '') + '/storage/';
 const MAX_IMAGE_SIZE_BYTES = 2 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png'];
 
+interface StrukturErrors {
+  foto?: string;
+  user?: string;
+  nomorRtRw?: string;
+  dariRw?: string;
+  alamat?: string;
+  noWa?: string;
+}
+
 const ManajemenStrukturDesa: React.FC = () => {
   const { toasts, showToast, removeToast } = useToast();
   const [data, setData] = useState<StrukturDesaItem[]>([]);
@@ -72,6 +81,7 @@ const ManajemenStrukturDesa: React.FC = () => {
   const [noWa, setNoWa] = useState('');
   const [fotoFile, setFotoFile] = useState<File | null>(null);
   const [fotoPreview, setFotoPreview] = useState<string | null>(null);
+  const [errors, setErrors] = useState<StrukturErrors>({});
 
   // Autocomplete search states
   const [searchQuery, setSearchQuery] = useState('');
@@ -149,6 +159,7 @@ const ManajemenStrukturDesa: React.FC = () => {
     setSelectedUser(null);
     setSearchQuery('');
     setSearchResults([]);
+    setErrors({});
   };
 
   const openCreate = () => {
@@ -223,38 +234,51 @@ const ManajemenStrukturDesa: React.FC = () => {
 
     setFotoFile(file);
     setFotoPreview(URL.createObjectURL(file));
+    setErrors((prev) => ({ ...prev, foto: undefined }));
+  };
+
+  const validate = (): boolean => {
+    const newErrors: StrukturErrors = {};
+
+    if (!fotoFile && !fotoPreview) {
+      newErrors.foto = 'Foto pejabat wajib diunggah';
+    }
+
+    if (!selectedUser) {
+      newErrors.user = 'Pilih warga terlebih dahulu menggunakan pencarian';
+    }
+
+    if (isRtRw && !nomorRtRw.trim()) {
+      newErrors.nomorRtRw = `Nomor ${jabatan === 'Ketua RW' ? 'RW' : 'RT'} harus diisi`;
+    }
+
+    if (jabatan === 'Ketua RT' && !dariRw.trim()) {
+      newErrors.dariRw = 'Nomor RW (dari RW berapa) harus diisi';
+    }
+
+    if (!alamat.trim()) {
+      newErrors.alamat = 'Alamat wajib diisi';
+    }
+
+    if (!noWa.trim()) {
+      newErrors.noWa = 'Nomor WhatsApp wajib diisi';
+    } else {
+      if (!noWa.startsWith('08')) {
+        newErrors.noWa = 'Nomor WhatsApp harus diawali dengan 08';
+      } else if (noWa.length < 10 || noWa.length > 13) {
+        newErrors.noWa = 'Nomor WhatsApp harus 10-13 digit';
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedUser) {
-      showToast('Pilih warga terlebih dahulu menggunakan pencarian', 'error');
-      return;
-    }
+    if (!validate()) return;
 
     const namaFinal = selectedUser.name;
-
-    // Validate nomor RT/RW
-    if (isRtRw && !nomorRtRw.trim()) {
-      showToast(`Nomor ${jabatan === 'Ketua RW' ? 'RW' : 'RT'} harus diisi`, 'error');
-      return;
-    }
-    if (jabatan === 'Ketua RT' && !dariRw.trim()) {
-      showToast('Nomor RW (dari RW berapa) harus diisi', 'error');
-      return;
-    }
-
-    // Validate nomor WA
-    if (noWa.trim()) {
-      if (!noWa.startsWith('08')) {
-        showToast('Nomor WhatsApp harus diawali dengan 08', 'error');
-        return;
-      }
-      if (noWa.length < 10 || noWa.length > 13) {
-        showToast('Nomor WhatsApp harus 10-13 digit', 'error');
-        return;
-      }
-    }
 
     // Combine jabatan with nomor, e.g. "Ketua RW 003" or "Ketua RT 001 RW 002"
     let jabatanFinal = jabatan;
@@ -450,12 +474,14 @@ const ManajemenStrukturDesa: React.FC = () => {
 
               {/* Details */}
               {item.alamat && (
-                <div className="flex items-start gap-2 text-sm text-gray-500 mb-2">
+                <div className="flex items-start gap-2 text-sm text-gray-500 mb-2 min-w-0" title={item.alamat}>
                   <svg className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
-                  <span className="break-words">{item.alamat}</span>
+                  <span className="truncate flex-1 min-w-0">
+                    {item.alamat.length > 25 ? item.alamat.slice(0, 25) + '...' : item.alamat}
+                  </span>
                 </div>
               )}
               {item.no_wa && (
@@ -477,12 +503,16 @@ const ManajemenStrukturDesa: React.FC = () => {
         onClose={() => !formLoading && setModalOpen(false)}
         title={editItem ? 'Edit Pejabat Desa' : 'Tambah Pejabat Desa'}
       >
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="space-y-4">
           {/* Foto Upload */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Foto</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Foto <span className="text-red-500">*</span>
+            </label>
             <div className="flex items-center gap-4">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center overflow-hidden ring-2 ring-gray-200">
+              <div className={`w-20 h-20 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center overflow-hidden ring-2 ${
+                errors.foto ? 'ring-red-300' : 'ring-gray-200'
+              }`}>
                 {fotoPreview ? (
                   <img src={fotoPreview} alt="Preview" className="w-full h-full object-cover" />
                 ) : (
@@ -496,9 +526,15 @@ const ManajemenStrukturDesa: React.FC = () => {
                   type="file"
                   accept="image/png,image/jpeg,image/jpg"
                   onChange={handleFotoChange}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+                  className={`block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer ${
+                    errors.foto ? 'border border-red-400 rounded-lg p-2' : ''
+                  }`}
                 />
-                <p className="text-xs text-gray-400 mt-1">Format: JPG, PNG, max 2MB</p>
+                {errors.foto ? (
+                  <p className="text-xs text-red-500 mt-1">{errors.foto}</p>
+                ) : (
+                  <p className="text-xs text-gray-400 mt-1">Format: JPG, PNG, max 2MB</p>
+                )}
               </div>
             </div>
           </div>
@@ -510,12 +546,19 @@ const ManajemenStrukturDesa: React.FC = () => {
             </label>
             <input
               type="text"
-              required={!selectedUser}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                errors.user ? 'border-red-400 focus:ring-red-300' : 'border-gray-300'
+              }`}
               placeholder="Ketik minimal 3 karakter..."
               value={searchQuery}
-              onChange={(e) => handleSearchInput(e.target.value)}
+              onChange={(e) => {
+                handleSearchInput(e.target.value);
+                if (errors.user) setErrors((prev) => ({ ...prev, user: undefined }));
+              }}
             />
+            {errors.user && (
+              <p className="text-xs text-red-500 mt-1">{errors.user}</p>
+            )}
             
             {searchLoading && <p className="text-sm text-gray-500 mt-2">Mencari...</p>}
             
@@ -529,6 +572,7 @@ const ManajemenStrukturDesa: React.FC = () => {
                       setSelectedUser(u);
                       setSearchResults([]);
                       setSearchQuery(u.name);
+                      setErrors((prev) => ({ ...prev, user: undefined }));
                       
                       // Auto-populate fields if available in selected citizen
                       if (u.alamat) setAlamat(u.alamat);
@@ -603,19 +647,25 @@ const ManajemenStrukturDesa: React.FC = () => {
               </label>
               <input
                 type="text"
-                required
                 value={nomorRtRw}
                 onChange={(e) => {
                   const val = e.target.value.replace(/[^0-9]/g, '');
                   setNomorRtRw(val);
+                  if (errors.nomorRtRw) setErrors((prev) => ({ ...prev, nomorRtRw: undefined }));
                 }}
                 maxLength={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                  errors.nomorRtRw ? 'border-red-400 focus:ring-red-300' : 'border-gray-300'
+                }`}
                 placeholder={`Contoh: 001, 002, 003`}
               />
-              <p className="text-xs text-gray-400 mt-1">
-                Masukkan nomor {jabatan === 'Ketua RW' ? 'RW' : 'RT'} (contoh: 001)
-              </p>
+              {errors.nomorRtRw ? (
+                <p className="text-xs text-red-500 mt-1">{errors.nomorRtRw}</p>
+              ) : (
+                <p className="text-xs text-gray-400 mt-1">
+                  Masukkan nomor {jabatan === 'Ketua RW' ? 'RW' : 'RT'} (contoh: 001)
+                </p>
+              )}
             </div>
           )}
 
@@ -627,62 +677,78 @@ const ManajemenStrukturDesa: React.FC = () => {
               </label>
               <input
                 type="text"
-                required
                 value={dariRw}
                 onChange={(e) => {
                   const val = e.target.value.replace(/[^0-9]/g, '');
                   setDariRw(val);
+                  if (errors.dariRw) setErrors((prev) => ({ ...prev, dariRw: undefined }));
                 }}
                 maxLength={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                  errors.dariRw ? 'border-red-400 focus:ring-red-300' : 'border-gray-300'
+                }`}
                 placeholder={`Contoh: 001, 002, 003`}
               />
-              <p className="text-xs text-gray-400 mt-1">
-                RT ini termasuk dalam RW berapa?
-              </p>
+              {errors.dariRw ? (
+                <p className="text-xs text-red-500 mt-1">{errors.dariRw}</p>
+              ) : (
+                <p className="text-xs text-gray-400 mt-1">
+                  RT ini termasuk dalam RW berapa?
+                </p>
+              )}
             </div>
           )}
 
           {/* Alamat */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Alamat</label>
-            <input
-              type="text"
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Alamat <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              rows={3}
+              maxLength={500}
               value={alamat}
-              onChange={(e) => setAlamat(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              placeholder="Masukkan alamat"
+              onChange={(e) => {
+                setAlamat(e.target.value);
+                if (errors.alamat) setErrors((prev) => ({ ...prev, alamat: undefined }));
+              }}
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none ${
+                errors.alamat ? 'border-red-400 focus:ring-red-300' : 'border-gray-300'
+              }`}
+              placeholder="Masukkan alamat lengkap..."
             />
+            <div className="flex justify-between items-center mt-1">
+              {errors.alamat ? (
+                <p className="text-xs text-red-500">{errors.alamat}</p>
+              ) : (
+                <span />
+              )}
+              <p className="text-xs text-gray-400">{(alamat || '').length}/500</p>
+            </div>
           </div>
 
           {/* No WA */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nomor WhatsApp</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Nomor WhatsApp <span className="text-red-500">*</span>
+            </label>
             <input
               type="text"
               value={noWa}
               onChange={(e) => {
                 const val = e.target.value.replace(/[^0-9]/g, '');
                 if (val.length <= 13) setNoWa(val);
+                if (errors.noWa) setErrors((prev) => ({ ...prev, noWa: undefined }));
               }}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${noWa && (!noWa.startsWith('08') || noWa.length < 10)
-                  ? 'border-red-300'
-                  : 'border-gray-300'
-                }`}
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                errors.noWa ? 'border-red-400 focus:ring-red-300' : 'border-gray-300'
+              }`}
               placeholder="Contoh: 081234567890"
               maxLength={13}
             />
             <div className="flex justify-between items-center mt-1">
-              <p className={`text-xs ${noWa && !noWa.startsWith('08') ? 'text-red-500' : 'text-gray-400'
-                }`}>
-                {noWa && !noWa.startsWith('08')
-                  ? 'Nomor harus diawali dengan 08'
-                  : ''}
-              </p>
-              {noWa && (
-                <span className={`text-xs font-medium ${noWa.length >= 10 && noWa.length <= 13 ? 'text-green-600' : 'text-red-500'
-                  }`}>
-                </span>
+              {errors.noWa && (
+                <p className="text-xs text-red-500">{errors.noWa}</p>
               )}
             </div>
           </div>

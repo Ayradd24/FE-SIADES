@@ -38,6 +38,14 @@ const initialForm: KatalogForm = {
 const MAX_IMAGE_SIZE_BYTES = 2 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png'];
 
+interface KatalogErrors {
+  nama_produk?: string;
+  deskripsi?: string;
+  harga?: string;
+  kontak_wa?: string;
+  gambar?: string;
+}
+
 const formatNumberId = (value: string) => {
   const numeric = Number(value || '0');
   return numeric.toLocaleString('id-ID');
@@ -51,6 +59,7 @@ const KatalogJasaWarga: React.FC = () => {
   const [statusLoadingId, setStatusLoadingId] = useState<number | null>(null);
   const [fetching, setFetching] = useState(true);
   const [form, setForm] = useState<KatalogForm>(initialForm);
+  const [errors, setErrors] = useState<KatalogErrors>({});
 
   const storageBaseUrl = useMemo(() => BASE_URL.replace(/\/api$/, '') + '/storage/', []);
 
@@ -70,6 +79,12 @@ const KatalogJasaWarga: React.FC = () => {
     fetchKatalog();
   }, [fetchKatalog]);
 
+  useEffect(() => {
+    if (!isModalOpen) {
+      setErrors({});
+    }
+  }, [isModalOpen]);
+
   const handleGambarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
     if (!file) {
@@ -78,39 +93,64 @@ const KatalogJasaWarga: React.FC = () => {
     }
 
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-      showToast('Foto jasa harus berformat JPG atau PNG', 'error');
+      setErrors((prev) => ({ ...prev, gambar: 'Foto jasa harus berformat JPG atau PNG' }));
       setForm((prev) => ({ ...prev, gambar: null }));
       e.target.value = '';
       return;
     }
 
     if (file.size > MAX_IMAGE_SIZE_BYTES) {
-      showToast('Ukuran foto jasa maksimal 2 MB', 'error');
+      setErrors((prev) => ({ ...prev, gambar: 'Ukuran foto jasa maksimal 2 MB' }));
       setForm((prev) => ({ ...prev, gambar: null }));
       e.target.value = '';
       return;
     }
 
     setForm((prev) => ({ ...prev, gambar: file }));
+    setErrors((prev) => ({ ...prev, gambar: undefined }));
   };
 
   const handleKontakWaChange = (value: string) => {
     const digitsOnly = value.replace(/\D/g, '');
     if (digitsOnly.length <= 13) {
       setForm((prev) => ({ ...prev, kontak_wa: digitsOnly }));
+      setErrors((prev) => ({ ...prev, kontak_wa: undefined }));
     }
+  };
+
+  const validate = (): boolean => {
+    const newErrors: KatalogErrors = {};
+    if (!form.nama_produk.trim()) {
+      newErrors.nama_produk = 'Nama jasa tidak boleh kosong';
+    } else if (!/^[a-zA-Z0-9 ]+$/.test(form.nama_produk.trim())) {
+      newErrors.nama_produk = 'Nama jasa hanya boleh berisi huruf dan angka';
+    }
+
+    if (!form.deskripsi.trim()) {
+      newErrors.deskripsi = 'Deskripsi tidak boleh kosong';
+    }
+
+    if (!form.harga.trim()) {
+      newErrors.harga = 'Perkiraan harga tidak boleh kosong';
+    }
+
+    if (!form.kontak_wa.trim()) {
+      newErrors.kontak_wa = 'Kontak WhatsApp tidak boleh kosong';
+    } else if (!form.kontak_wa.startsWith('08') || form.kontak_wa.length < 10 || form.kontak_wa.length > 13) {
+      newErrors.kontak_wa = 'Kontak WhatsApp harus diawali 08 dan terdiri dari 10-13 digit';
+    }
+
+    if (!form.gambar) {
+      newErrors.gambar = 'Foto jasa wajib diunggah';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (
-      form.kontak_wa
-      && (!form.kontak_wa.startsWith('08') || form.kontak_wa.length < 10 || form.kontak_wa.length > 13)
-    ) {
-      showToast('Kontak WhatsApp harus diawali 08 dan terdiri dari 10-13 digit', 'error');
-      return;
-    }
+    if (!validate()) return;
 
     setLoading(true);
 
@@ -180,9 +220,10 @@ const KatalogJasaWarga: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <>
       <ToastContainer toasts={toasts} onRemove={removeToast} />
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-blue-50">
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-blue-50">
         <div>
           <h1 className="text-2xl font-bold text-[#1e3a5f]">Katalog Jasa Warga</h1>
           <p className="text-gray-500 mt-1">Daftar jasa yang ditawarkan oleh warga Desa Karangasem.</p>
@@ -271,90 +312,135 @@ const KatalogJasaWarga: React.FC = () => {
       )}
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Pengajuan Jasa Baru">
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} noValidate className="space-y-5">
           <div>
-            <label className="block text-sm font-semibold text-[#1e3a5f] mb-2">Nama Jasa</label>
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-sm font-semibold text-[#1e3a5f]">Nama Jasa</label>
+              <span className="text-xs text-gray-400 font-medium">
+                {form.nama_produk.length}/50
+              </span>
+            </div>
             <input
               type="text"
-              required
+              maxLength={50}
               value={form.nama_produk}
-              onChange={(e) => setForm((prev) => ({ ...prev, nama_produk: e.target.value }))}
+              onChange={(e) => {
+                const clean = e.target.value.replace(/[^a-zA-Z0-9 ]/g, '').slice(0, 50);
+                setForm((prev) => ({ ...prev, nama_produk: clean }));
+                setErrors((prev) => ({ ...prev, nama_produk: undefined }));
+              }}
               placeholder="Misal: Jasa Servis AC"
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition-all"
+              className={`w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition-all ${
+                errors.nama_produk ? 'border-red-400 focus:ring-red-300' : 'border-gray-300'
+              }`}
             />
+            {errors.nama_produk && (
+              <p className="text-xs text-red-500 mt-1">{errors.nama_produk}</p>
+            )}
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-[#1e3a5f] mb-2">Deskripsi Singkat</label>
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-sm font-semibold text-[#1e3a5f]">Deskripsi Singkat</label>
+              <span className="text-xs text-gray-400 font-medium">
+                {form.deskripsi.length}/500
+              </span>
+            </div>
             <textarea
-              required
               rows={3}
+              maxLength={500}
               value={form.deskripsi}
-              onChange={(e) => setForm((prev) => ({ ...prev, deskripsi: e.target.value }))}
+              onChange={(e) => {
+                setForm((prev) => ({ ...prev, deskripsi: e.target.value.slice(0, 500) }));
+                setErrors((prev) => ({ ...prev, deskripsi: undefined }));
+              }}
               placeholder="Jelaskan jasa yang ditawarkan..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition-all resize-none"
+              className={`w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition-all resize-none ${
+                errors.deskripsi ? 'border-red-400 focus:ring-red-300' : 'border-gray-300'
+              }`}
             ></textarea>
+            {errors.deskripsi && (
+              <p className="text-xs text-red-500 mt-1">{errors.deskripsi}</p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-[#1e3a5f] mb-2">Perkiraan Harga</label>
               <input
-                required
                 type="number"
                 min="0"
                 step="500"
                 value={form.harga}
-                onChange={(e) => setForm((prev) => ({ ...prev, harga: e.target.value.replace(/\D/g, '') }))}
+                onChange={(e) => {
+                  setForm((prev) => ({ ...prev, harga: e.target.value.replace(/\D/g, '') }));
+                  setErrors((prev) => ({ ...prev, harga: undefined }));
+                }}
+                onKeyDown={(e) => {
+                  if (['-', '+', 'e', 'E', '.', ','].includes(e.key)) {
+                    e.preventDefault();
+                  }
+                }}
                 placeholder="50000"
-                className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition-all"
+                className={`w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition-all ${
+                  errors.harga ? 'border-red-400 focus:ring-red-300' : 'border-gray-300'
+                }`}
               />
-              <p className="text-xs text-gray-500 mt-1">
-                Format rupiah: {form.harga ? `Rp ${formatNumberId(form.harga)}` : 'Rp 0'}
-              </p>
+              <div className="flex justify-between items-center mt-1">
+                {errors.harga ? (
+                  <p className="text-xs text-red-500">{errors.harga}</p>
+                ) : (
+                  <p className="text-xs text-gray-500">
+                    Format rupiah: {form.harga ? `Rp ${formatNumberId(form.harga)}` : 'Rp 0'}
+                  </p>
+                )}
+              </div>
             </div>
             <div>
               <label className="block text-sm font-semibold text-[#1e3a5f] mb-2">Kontak WhatsApp</label>
               <input
-                required
                 type="text"
                 value={form.kontak_wa}
                 onChange={(e) => handleKontakWaChange(e.target.value)}
                 placeholder="08xxxxxxxxxx"
                 maxLength={13}
-                className={`w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition-all ${form.kontak_wa && (!form.kontak_wa.startsWith('08') || form.kontak_wa.length < 10)
-                    ? 'border-red-400'
-                    : 'border-gray-300'
-                  }`}
+                className={`w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition-all ${
+                  errors.kontak_wa ? 'border-red-400 focus:ring-red-300' : 'border-gray-300'
+                }`}
               />
-              <p className={`text-xs mt-1 ${form.kontak_wa && (!form.kontak_wa.startsWith('08') || form.kontak_wa.length < 10)
-                  ? 'text-red-500'
-                  : 'text-gray-500'
-                }`}>
-                {form.kontak_wa && !form.kontak_wa.startsWith('08')
-                  ? 'Nomor harus diawali 08'
-                  : form.kontak_wa && form.kontak_wa.length < 10
-                    ? 'Minimal 10 digit'
-                    : 'Contoh: 081234567890'}
-              </p>
+              {errors.kontak_wa ? (
+                <p className="text-xs text-red-500 mt-1">{errors.kontak_wa}</p>
+              ) : (
+                <p className="text-xs text-gray-500 mt-1">
+                  Contoh: 081234567890
+                </p>
+              )}
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-[#1e3a5f] mb-2">Upload Foto Jasa (Opsional)</label>
+            <label className="block text-sm font-semibold text-[#1e3a5f] mb-2">
+              Upload Foto Jasa <span className="text-red-500">*</span>
+            </label>
             <input
-              required
               type="file"
               accept="image/png,image/jpeg,image/jpg"
+              required
               onChange={handleGambarChange}
-              className="block w-full text-sm text-gray-500
+              className={`block w-full text-sm text-gray-500
                 file:mr-4 file:py-2 file:px-4
                 file:rounded-xl file:border-0
                 file:text-sm file:font-semibold
                 file:bg-blue-50 file:text-blue-700
-                hover:file:bg-blue-100 transition-all cursor-pointer"
+                hover:file:bg-blue-100 transition-all cursor-pointer ${
+                  errors.gambar ? 'border border-red-400 p-2 rounded-xl' : ''
+                }`}
             />
-            <p className="text-xs text-gray-500 mt-1">Format: JPG/PNG, maksimal 2 MB.</p>
+            {errors.gambar ? (
+              <p className="text-xs text-red-500 mt-1">{errors.gambar}</p>
+            ) : (
+              <p className="text-xs text-gray-500 mt-1">Format: JPG/PNG, maksimal 2 MB.</p>
+            )}
             {form.gambar && <p className="text-xs text-green-600 mt-1 font-medium italic">File terpilih: {form.gambar.name}</p>}
           </div>
 
@@ -364,7 +450,8 @@ const KatalogJasaWarga: React.FC = () => {
           </div>
         </form>
       </Modal>
-    </div>
+      </div>
+    </>
   );
 };
 
