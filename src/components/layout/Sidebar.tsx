@@ -145,7 +145,7 @@ const Sidebar: React.FC = () => {
         {/* Logout */}
         <button
           onClick={() => setConfirmLogoutOpen(true)}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-[#1e3a5f] hover:bg-red-100 hover:text-red-600 transition-all duration-200 mt-2"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium bg-red-200 text-red-700 hover:bg-red-300 transition-all duration-200 mt-2"
         >
           <LogoutIcon />
           <span>Logout</span>

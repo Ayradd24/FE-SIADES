@@ -113,23 +113,21 @@ const ForgotPasswordPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#e8edf5] flex flex-col">
       {/* Header */}
-      <header className="bg-white shadow-sm px-8 py-4 flex items-center gap-4">
-        <img src={logoDesaImg} alt="Logo Desa Karangasem" className="w-14 h-14 object-contain" />
-        <h1 className="text-2xl font-extrabold text-[#1e3a5f]">LUPA PASSWORD</h1>
-      </header>
-
-      {/* Back to login */}
-      <div className="px-8 pt-6">
+      <header className="bg-white shadow-sm px-8 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <img src={logoDesaImg} alt="Logo Desa Karangasem" className="w-14 h-14 object-contain" />
+          <h1 className="text-2xl font-extrabold text-[#1e3a5f]">LUPA PASSWORD</h1>
+        </div>
         <Link
           to="/"
-          className="inline-flex items-center gap-2 bg-blue-400 hover:bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-semibold transition-colors"
+          className="inline-flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-semibold transition-colors shadow-sm"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-          Home
+          Beranda
         </Link>
-      </div>
+      </header>
 
       {/* Forgot Password Card */}
       <div className="flex-1 flex items-center justify-center px-4 py-8">

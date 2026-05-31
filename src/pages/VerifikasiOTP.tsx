@@ -140,14 +140,14 @@ const VerifikasiOTP: React.FC = () => {
         no_telp: nomorHP,
         otp: otpString,
       });
-      
+
       // 1. Tangkap seluruh data respons
       const resData = response.data;
-      
+
       // 2. Cari reset_token di berbagai kemungkinan struktur (Bulletproof)
-      const resetToken = resData?.data?.reset_token 
-                      || resData?.reset_token 
-                      || resData?.data?.data?.reset_token;
+      const resetToken = resData?.data?.reset_token
+        || resData?.reset_token
+        || resData?.data?.data?.reset_token;
 
       // 3. Jika token tetap tidak ketemu, jangan pindah halaman dulu, tapi tampilkan error di form
       if (!resetToken) {
@@ -161,7 +161,7 @@ const VerifikasiOTP: React.FC = () => {
       navigate('/ganti-password', {
         state: { nomorHP, nik, resetToken },
       });
-      
+
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string }; status?: number } };
       if (err.response?.status === 400) {
@@ -199,7 +199,7 @@ const VerifikasiOTP: React.FC = () => {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-          Home
+          Beranda
         </Link>
       </div>
 
@@ -317,12 +317,12 @@ const VerifikasiOTP: React.FC = () => {
               </Link>
             </p> */}
             {/* Tidak Menerima OTP? */}
-            <p className="text-center mt-2 text-sm text-gray-500">
+            {/* <p className="text-center mt-2 text-sm text-gray-500">
               Tidak menerima OTP?{' '}
               <Link to="/" className="text-blue-500 font-semibold hover:text-blue-700 transition-colors">
                 Hubungi Admin
               </Link>
-            </p>
+            </p> */}
             <p className="text-center mt-2 text-sm text-gray-500">
               <Link to="/lupa-password" className="text-blue-500 font-semibold hover:text-blue-700 transition-colors">
                 Ganti Nomor HP
