@@ -93,7 +93,7 @@ function StrukturPreview() {
   }, []);
 
   return (
-    <div className="py-12 text-center bg-gray-100">
+    <div className="py-12 text-center bg-white rounded-t-[40px] -mt-10 relative z-10">
       <h2 className="text-xl font-bold text-blue-800 mb-8">
         STRUKTUR PEMERINTAH DESA
       </h2>
@@ -229,12 +229,12 @@ function LandingPage() {
           backgroundAttachment: "fixed",
         }}
       >
-        <div className="absolute inset-0 bg-blue-900/50" />
+        <div className="absolute inset-0 bg-black/20" />
         <div className="relative text-center px-4 max-w-2xl">
-          <h1 className="text-3xl font-bold mb-2">
+          <h1 className="text-3xl font-bold mb-2 drop-shadow-md">
             Selamat Datang di Portal Desa Karangasem
           </h1>
-          <p className="mb-4 text-sm">
+          <p className="mb-4 text-sm drop-shadow-md">
             Mewujudkan desa yang transparan, inovatif, dan mandiri
           </p>
           <button

@@ -126,7 +126,7 @@ const LoginPage: React.FC = () => {
 
       {/* Login Card */}
       <div className="flex-1 flex items-center justify-center px-4 py-8">
-        <div className="bg-white rounded-3xl shadow-lg w-full max-w-lg p-10">
+        <div className="bg-white rounded-3xl shadow-lg w-full max-w-lg p-10 animate-page-fade-up">
           <h2 className="text-center text-xl font-extrabold text-[#1e3a5f] mb-8 uppercase tracking-wide">
             Masuk ke Akun Anda
           </h2>

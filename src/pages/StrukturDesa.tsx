@@ -114,7 +114,7 @@ function WhatsAppButton({ wa }: { wa: string }) {
         transition-all duration-200 active:scale-95 text-sm"
     >
       <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.003 5.37 5.378 0 12.003 0a11.902 11.902 0 018.484 3.515c2.27 2.27 3.52 5.289 3.513 8.497-.006 6.628-5.38 12-12.01 12-2.002-.001-3.973-.496-5.735-1.436L0 24zm6.59-4.846c1.6.95 3.498 1.453 5.418 1.454 5.56 0 10.084-4.522 10.088-10.086.002-2.695-1.047-5.227-2.956-7.137A9.98 9.98 0 0012.003 1.916c-5.56 0-10.085 4.522-10.09 10.087-.001 1.9.49 3.754 1.42 5.39l-1.018 3.714 3.822-.996zM17.15 14.5c-.282-.14-.167-.624-.87-.974-.105-.052-.218-.08-.328-.08-.266 0-.518.156-.66.413-.19.345-.38.79-.58 1.1-.184.288-.475.32-.782.164-2.036-1.015-3.32-2.71-3.82-3.566-.184-.316-.017-.487.15-.653.116-.118.258-.3.387-.45.13-.15.172-.25.258-.417.086-.167.043-.313-.02-.45-.064-.137-.58-1.402-.796-1.92-.21-.504-.424-.41-.58-.418-.15-.008-.323-.008-.495-.008-.172 0-.45.064-.688.32-.237.258-.903.882-.903 2.148 0 1.266.925 2.49 1.05 2.66.128.17 1.8 2.75 4.37 3.86 2.14.92 2.91.74 3.95.58 1.05-.16 2.27-.928 2.59-1.83.32-.904.32-1.68.225-1.837-.095-.157-.352-.297-.635-.437z"/>
+        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.003 5.37 5.378 0 12.003 0a11.902 11.902 0 018.484 3.515c2.27 2.27 3.52 5.289 3.513 8.497-.006 6.628-5.38 12-12.01 12-2.002-.001-3.973-.496-5.735-1.436L0 24zm6.59-4.846c1.6.95 3.498 1.453 5.418 1.454 5.56 0 10.084-4.522 10.088-10.086.002-2.695-1.047-5.227-2.956-7.137A9.98 9.98 0 0012.003 1.916c-5.56 0-10.085 4.522-10.09 10.087-.001 1.9.49 3.754 1.42 5.39l-1.018 3.714 3.822-.996zM17.15 14.5c-.282-.14-.167-.624-.87-.974-.105-.052-.218-.08-.328-.08-.266 0-.518.156-.66.413-.19.345-.38.79-.58 1.1-.184.288-.475.32-.782.164-2.036-1.015-3.32-2.71-3.82-3.566-.184-.316-.017-.487.15-.653.116-.118.258-.3.387-.45.13-.15.172-.25.258-.417.086-.167.043-.313-.02-.45-.064-.137-.58-1.402-.796-1.92-.21-.504-.424-.41-.58-.418-.15-.008-.323-.008-.495-.008-.172 0-.45.064-.688.32-.237.258-.903.882-.903 2.148 0 1.266.925 2.49 1.05 2.66.128.17 1.8 2.75 4.37 3.86 2.14.92 2.91.74 3.95.58 1.05-.16 2.27-.928 2.59-1.83.32-.904.32-1.68.225-1.837-.095-.157-.352-.297-.635-.437z" />
       </svg>
       Hubungi WA
     </button>
@@ -228,7 +228,7 @@ export default function StrukturDesa() {
   return (
     <div className={`font-sans min-h-screen flex flex-col relative overflow-x-hidden ${isAdmin ? '-m-8' : ''}`}>
       {/* Background Image with Blur */}
-      <div 
+      <div
         className="fixed inset-0 pointer-events-none"
         style={{
           backgroundImage: `url(${bg})`,
@@ -240,8 +240,8 @@ export default function StrukturDesa() {
         }}
       />
       {/* Dark Slate Overlay */}
-      <div 
-        className="fixed inset-0 bg-slate-900/40 pointer-events-none" 
+      <div
+        className="fixed inset-0 bg-slate-900/40 pointer-events-none"
         style={{ zIndex: -10 }}
       />
 
@@ -264,14 +264,14 @@ export default function StrukturDesa() {
       {/* ── KEPALA DESA SECTION ── */}
       <section className={`relative ${isAdmin ? 'pt-16' : 'pt-4'} pb-10 px-4`}>
         <div className="relative max-w-5xl mx-auto">
-          <h1 className="text-center text-3xl md:text-4xl font-extrabold text-white tracking-wide mb-10 drop-shadow-lg">
+          <h1 className="text-center text-3xl md:text-4xl font-extrabold text-white tracking-wide mb-10 drop-shadow-lg animate-page-slide-down">
             STRUKTUR PEMERINTAH DESA
           </h1>
 
           <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-10">
             {/* Sekretaris (left) */}
             {staffUtama[0] && (
-              <div className="order-2 md:order-1">
+              <div className="order-2 md:order-1 animate-page-fade-up" style={{ animationDelay: '250ms' }}>
                 <PersonCard
                   nama={staffUtama[0].nama}
                   jabatan={staffUtama[0].jabatan}
@@ -283,7 +283,7 @@ export default function StrukturDesa() {
 
             {/* Kepala Desa (center) */}
             {kepalaDesa && (
-              <div className="order-1 md:order-2 scale-105 md:scale-110">
+              <div className="order-1 md:order-2 scale-105 md:scale-110 animate-page-fade-up" style={{ animationDelay: '150ms' }}>
                 <PersonCard
                   nama={kepalaDesa.nama}
                   jabatan={kepalaDesa.jabatan}
@@ -296,7 +296,7 @@ export default function StrukturDesa() {
 
             {/* Bendahara (right) */}
             {staffUtama[1] && (
-              <div className="order-3">
+              <div className="order-3 animate-page-fade-up" style={{ animationDelay: '350ms' }}>
                 <PersonCard
                   nama={staffUtama[1].nama}
                   jabatan={staffUtama[1].jabatan}
@@ -325,7 +325,7 @@ export default function StrukturDesa() {
       {ketuaRW.length > 0 && (
         <section className="relative py-10 px-4">
           <div className="relative max-w-5xl mx-auto">
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-8 shadow-lg">
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-8 shadow-lg animate-page-fade-up" style={{ animationDelay: '500ms' }}>
               <h2 className="text-xl font-bold text-white mb-4 drop-shadow">Ketua RW</h2>
               <div className="mb-6">
                 <DropdownSelector
@@ -385,7 +385,7 @@ export default function StrukturDesa() {
       {filteredRT.length > 0 && (
         <section className="relative py-10 px-4 flex-1">
           <div className="relative max-w-5xl mx-auto">
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-8 shadow-lg">
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-8 shadow-lg animate-page-fade-up" style={{ animationDelay: '600ms' }}>
               <h2 className="text-xl font-bold text-white mb-4 drop-shadow">Ketua RT</h2>
               <div className="mb-6">
                 <DropdownSelector
@@ -452,37 +452,37 @@ export default function StrukturDesa() {
           width: 4px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(255, 255, 255, 0.03);
+          background: rgba(0, 0, 0, 0.02);
           border-radius: 4px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.15);
+          background: rgba(0, 0, 0, 0.1);
           border-radius: 4px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(255, 255, 255, 0.35);
+          background: rgba(0, 0, 0, 0.2);
         }
       `}</style>
 
       {/* ── DETAIL MODAL ── */}
       {selectedPerson && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md animate-modal-fade-in"
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-md animate-modal-fade-in"
           onClick={() => setSelectedPerson(null)}
         >
           {/* Modal Container */}
-          <div 
-            className="relative w-full max-w-sm bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl text-white flex flex-col items-center overflow-hidden animate-modal-scale-up"
+          <div
+            className="relative w-full max-w-sm bg-white/95 backdrop-blur-xl border border-slate-100 rounded-3xl p-6 shadow-2xl text-slate-800 flex flex-col items-center overflow-hidden animate-modal-scale-up"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Ambient Background Glow inside Modal */}
-            <div className="absolute -top-24 -left-24 w-48 h-48 bg-blue-500/20 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -top-24 -left-24 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
 
             {/* Close Button */}
             <button
               onClick={() => setSelectedPerson(null)}
-              className="absolute top-4 right-4 text-white/50 hover:text-white bg-white/5 hover:bg-white/10 p-2 rounded-full transition-all active:scale-95"
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 bg-slate-100/60 hover:bg-slate-200/80 p-2 rounded-full transition-all active:scale-95"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
@@ -490,7 +490,7 @@ export default function StrukturDesa() {
             </button>
 
             {/* Profile Picture */}
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center mb-4 ring-4 ring-white/10 shadow-xl overflow-hidden relative">
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center mb-4 ring-4 ring-slate-100/80 shadow-md overflow-hidden relative">
               {selectedPerson.foto ? (
                 <img
                   src={`${storageBaseUrl}${selectedPerson.foto}`}
@@ -498,34 +498,34 @@ export default function StrukturDesa() {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <svg className="w-10 h-10 text-slate-500" fill="currentColor" viewBox="0 0 24 24">
+                <svg className="w-10 h-10 text-slate-400" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
                 </svg>
               )}
             </div>
 
             {/* Name & Title */}
-            <h3 className="text-lg md:text-xl font-extrabold text-white text-center drop-shadow-sm px-4">
+            <h3 className="text-lg md:text-xl font-extrabold text-slate-800 text-center px-4">
               {selectedPerson.nama}
             </h3>
-            <span className="mt-1 px-3 py-0.5 bg-blue-500/10 border border-blue-500/20 text-blue-300 rounded-full text-xs font-semibold uppercase tracking-wider">
+            <span className="mt-1 px-3 py-0.5 bg-blue-50 border border-blue-100 text-blue-700 rounded-full text-xs font-semibold uppercase tracking-wider">
               {selectedPerson.jabatan}
             </span>
 
             {/* Divider */}
-            <div className="w-full border-t border-white/10 my-4" />
+            <div className="w-full border-t border-slate-100 my-4" />
 
             {/* Details Section */}
             <div className="w-full space-y-4">
               {/* Address */}
-              <div className="bg-white/5 border border-white/5 rounded-2xl p-4 flex items-start gap-3 min-w-0">
-                <MapPin className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+              <div className="bg-slate-50/80 border border-slate-100 rounded-2xl p-4 flex items-start gap-3 min-w-0">
+                <MapPin className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
                 <div className="min-w-0 flex-1">
-                  <span className="block text-[10px] font-semibold text-white/50 uppercase tracking-wider mb-0.5">
+                  <span className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-0.5">
                     Alamat Rumah
                   </span>
                   <div className="max-h-24 overflow-y-auto pr-1 custom-scrollbar">
-                    <p className="text-sm text-gray-200 break-all whitespace-pre-wrap leading-relaxed">
+                    <p className="text-sm text-slate-600 break-all whitespace-pre-wrap leading-relaxed">
                       {selectedPerson.alamat || 'Alamat belum dicantumkan.'}
                     </p>
                   </div>
@@ -544,40 +544,42 @@ export default function StrukturDesa() {
       )}
 
       {/* ── FOOTER ── */}
-      <footer className="relative bg-[#0f172a]/95 backdrop-blur-sm text-white py-8 mt-auto">
-        <div className="max-w-5xl mx-auto px-6 flex flex-col items-center">
-          {/* Logo & Portal Info */}
-          <div className="flex flex-col items-center text-center mb-6">
-            <div className="flex items-center gap-3 mb-2">
-              <img src={logoDesaImg} alt="Logo Desa Karangasem" className="w-10 h-10 object-contain grayscale" />
-              <span className="text-xl font-bold tracking-wide">Desa Karangasem</span>
-            </div>
-            <p className="text-sm text-gray-300">
-              Portal Sistem Informasi Administrasi Desa
-            </p>
-          </div>
-
-          {/* Alamat & Kontak (jangan dihilangkan) */}
-          <div className="w-full border-t border-slate-700/60 pt-6 pb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div className="flex items-start gap-3">
+      <footer className="relative bg-[#0f172a]/95 backdrop-blur-sm text-white py-6 mt-auto">
+        <div className="max-w-5xl mx-auto px-6">
+          {/* Main Footer Row: Alamat on left, Centered Logo in middle, Kontak on right */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center pb-5 border-b border-slate-800/60">
+            {/* Alamat (Left on desktop) */}
+            <div className="flex items-start justify-center md:justify-start gap-3">
               <div className="mt-0.5">
                 <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z" />
                 </svg>
               </div>
-              <div>
+              <div className="text-left">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Alamat Balai Desa</p>
                 <p className="text-sm text-gray-200">Jl. Sigur No.1</p>
               </div>
             </div>
 
-            <div className="flex items-start gap-3">
+            {/* Logo & Portal Info (Always Centered) */}
+            <div className="flex flex-col items-center text-center">
+              <div className="flex items-center gap-2.5 mb-1">
+                <img src={logoDesaImg} alt="Logo Desa Karangasem" className="w-8 h-8 object-contain grayscale opacity-80" />
+                <span className="text-lg font-bold tracking-wide">Desa Karangasem</span>
+              </div>
+              <p className="text-xs text-gray-400">
+                Portal Sistem Informasi Administrasi Desa
+              </p>
+            </div>
+
+            {/* Kontak (Right on desktop) */}
+            <div className="flex items-start justify-center md:justify-end gap-3">
               <div className="mt-0.5">
                 <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24 11.36 11.36 0 003.58.57 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1 11.36 11.36 0 00.57 3.58 1 1 0 01-.25 1.01l-2.2 2.2z" />
                 </svg>
               </div>
-              <div>
+              <div className="text-left">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Kontak Desa (Telp/WA)</p>
                 <p className="text-sm text-gray-200">(021) 1234 5678 | 0812-3456-7890</p>
               </div>
@@ -585,7 +587,7 @@ export default function StrukturDesa() {
           </div>
 
           {/* Copyright */}
-          <div className="w-full border-t border-slate-800/60 pt-4 text-center">
+          <div className="pt-4 text-center">
             <p className="text-xs text-gray-500">
               &copy; 2026 Desa Karangasem. Hak cipta dilindungi.
             </p>
