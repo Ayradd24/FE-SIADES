@@ -109,7 +109,7 @@ function StrukturPreview() {
                 )}
               </div>
               <h3 className="font-semibold">{item.nama}</h3>
-              <p className="text-sm text-green-600">{item.jabatan}</p>
+              <p className="text-sm text-blue-600">{item.jabatan}</p>
             </div>
           ))
         )}
@@ -184,7 +184,7 @@ function LandingPage() {
 
       {/* HERO */}
       <div
-        className="relative h-[400px] flex items-center justify-center text-white"
+        className="relative h-[85vh] flex items-center justify-center text-white"
         style={{
           backgroundImage: `url(${bg})`,
           backgroundSize: "cover",
@@ -298,9 +298,20 @@ function LandingPage() {
       </div>
 
       {/* FOOTER */}
-      <div className="bg-gray-700 text-white text-center py-4">
-        © 2026 Desa Karangasem
-      </div>
+      <footer className="bg-[#0f172a] text-white py-8">
+        <div className="max-w-5xl mx-auto px-6 flex flex-col items-center text-center">
+          <div className="flex items-center gap-3 mb-2">
+            <img src={logo} alt="Logo Desa Karangasem" className="w-10 h-10 object-contain grayscale" />
+            <span className="text-xl font-bold tracking-wide">Desa Karangasem</span>
+          </div>
+          <p className="text-sm text-gray-300 mb-2">
+            Portal Sistem Informasi Administrasi Desa
+          </p>
+          <p className="text-xs text-gray-500">
+            &copy; 2026 Desa Karangasem. Hak cipta dilindungi.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }

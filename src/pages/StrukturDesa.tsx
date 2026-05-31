@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import bg from '../assets/sawah-bg.png';
+import logoDesaImg from '../assets/logo-desa.png';
 import api, { BASE_URL } from '../lib/api';
 
 interface StrukturDesaItem {
@@ -238,7 +239,7 @@ export default function StrukturDesa() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            Home
+            Beranda
           </button>
         </div>
       )}
@@ -304,36 +305,42 @@ export default function StrukturDesa() {
       {ketuaRW.length > 0 && (
         <section className="relative py-10 px-4">
           <div className="relative max-w-5xl mx-auto">
-            <div className="mb-6">
-              <DropdownSelector
-                options={ketuaRW.map((rw, idx) => ({
-                  value: idx,
-                  label: rw.jabatan.toLowerCase().startsWith('ketua') 
-                    ? rw.jabatan.replace(/^Ketua\s+/i, '') 
-                    : rw.jabatan,
-                }))}
-                value={selectedRWIdx}
-                onChange={(val) => setSelectedRWIdx(val)}
-              />
-            </div>
-
-            {currentRW && (
-              <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
-                <PersonCard
-                  nama={currentRW.nama}
-                  jabatan={currentRW.jabatan.replace(/^Ketua\s+/i, '')}
-                  foto={currentRW.foto}
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-8 shadow-lg">
+              <h2 className="text-xl font-bold text-white mb-4 drop-shadow">Pilih Ketua RW</h2>
+              <div className="mb-6">
+                <DropdownSelector
+                  options={ketuaRW.map((rw, idx) => ({
+                    value: idx,
+                    label: rw.jabatan.toLowerCase().startsWith('ketua')
+                      ? rw.jabatan.replace(/^Ketua\s+/i, '')
+                      : rw.jabatan,
+                  }))}
+                  value={selectedRWIdx}
+                  onChange={(val) => setSelectedRWIdx(val)}
                 />
-                <div className="flex flex-col justify-center gap-3">
-                  {currentRW.alamat && (
-                    <h2 className="text-xl md:text-2xl font-bold text-white drop-shadow">
-                      Alamat : {currentRW.alamat}
-                    </h2>
-                  )}
-                  <WhatsAppButton wa={currentRW.no_wa} />
-                </div>
               </div>
-            )}
+
+              {currentRW && (
+                <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
+                  <PersonCard
+                    nama={currentRW.nama}
+                    jabatan={currentRW.jabatan.replace(/^Ketua\s+/i, '')}
+                    foto={currentRW.foto}
+                  />
+                  <div className="flex flex-col justify-center gap-3">
+                    {currentRW.alamat && (
+                      <div>
+                        <p className="text-xs font-semibold text-white/70 uppercase tracking-wider mb-1">Alamat</p>
+                        <h2 className="text-xl md:text-2xl font-bold text-white drop-shadow">
+                          {currentRW.alamat}
+                        </h2>
+                      </div>
+                    )}
+                    <WhatsAppButton wa={currentRW.no_wa} />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </section>
       )}
@@ -349,42 +356,60 @@ export default function StrukturDesa() {
       {filteredRT.length > 0 && (
         <section className="relative py-10 px-4 flex-1">
           <div className="relative max-w-5xl mx-auto">
-            <div className="mb-6">
-              <DropdownSelector
-                options={filteredRT.map((rt, idx) => ({
-                  value: idx,
-                  label: rt.jabatan.replace(/^Ketua\s+/i, '').replace(/RW\s*\d+/i, '').trim(),
-                }))}
-                value={selectedRTIdx}
-                onChange={(val) => setSelectedRTIdx(val)}
-              />
-            </div>
-
-            {currentRT && (
-              <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
-                <PersonCard
-                  nama={currentRT.nama}
-                  jabatan={currentRT.jabatan.replace(/^Ketua\s+/i, '').replace(/RW\s*\d+/i, '').trim()}
-                  foto={currentRT.foto}
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-8 shadow-lg">
+              <h2 className="text-xl font-bold text-white mb-4 drop-shadow">Pilih Ketua RT</h2>
+              <div className="mb-6">
+                <DropdownSelector
+                  options={filteredRT.map((rt, idx) => ({
+                    value: idx,
+                    label: rt.jabatan.replace(/^Ketua\s+/i, '').replace(/RW\s*\d+/i, '').trim(),
+                  }))}
+                  value={selectedRTIdx}
+                  onChange={(val) => setSelectedRTIdx(val)}
                 />
-                <div className="flex flex-col justify-center gap-3">
-                  {currentRT.alamat && (
-                    <h2 className="text-xl md:text-2xl font-bold text-white drop-shadow">
-                      Alamat : {currentRT.alamat}
-                    </h2>
-                  )}
-                  <WhatsAppButton wa={currentRT.no_wa} />
-                </div>
               </div>
-            )}
+
+              {currentRT && (
+                <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
+                  <PersonCard
+                    nama={currentRT.nama}
+                    jabatan={currentRT.jabatan.replace(/^Ketua\s+/i, '').replace(/RW\s*\d+/i, '').trim()}
+                    foto={currentRT.foto}
+                  />
+                  <div className="flex flex-col justify-center gap-3">
+                    {currentRT.alamat && (
+                      <div>
+                        <p className="text-xs font-semibold text-white/70 uppercase tracking-wider mb-1">Alamat</p>
+                        <h2 className="text-xl md:text-2xl font-bold text-white drop-shadow">
+                          {currentRT.alamat}
+                        </h2>
+                      </div>
+                    )}
+                    <WhatsAppButton wa={currentRT.no_wa} />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </section>
       )}
 
       {/* ── FOOTER ── */}
-      <footer className="relative bg-gray-800/90 backdrop-blur-sm text-white py-5 mt-auto">
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+      <footer className="relative bg-[#0f172a]/95 backdrop-blur-sm text-white py-8 mt-auto">
+        <div className="max-w-5xl mx-auto px-6 flex flex-col items-center">
+          {/* Logo & Portal Info */}
+          <div className="flex flex-col items-center text-center mb-6">
+            <div className="flex items-center gap-3 mb-2">
+              <img src={logoDesaImg} alt="Logo Desa Karangasem" className="w-10 h-10 object-contain grayscale" />
+              <span className="text-xl font-bold tracking-wide">Desa Karangasem</span>
+            </div>
+            <p className="text-sm text-gray-300">
+              Portal Sistem Informasi Administrasi Desa
+            </p>
+          </div>
+
+          {/* Alamat & Kontak (jangan dihilangkan) */}
+          <div className="w-full border-t border-slate-700/60 pt-6 pb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div className="flex items-start gap-3">
               <div className="mt-0.5">
                 <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
@@ -392,8 +417,8 @@ export default function StrukturDesa() {
                 </svg>
               </div>
               <div>
-                <p className="text-xs font-semibold text-gray-300 uppercase tracking-wider">Alamat Balai Desa</p>
-                <p className="text-sm">Jl. Sigur No.1</p>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Alamat Balai Desa</p>
+                <p className="text-sm text-gray-200">Jl. Sigur No.1</p>
               </div>
             </div>
 
@@ -404,14 +429,17 @@ export default function StrukturDesa() {
                 </svg>
               </div>
               <div>
-                <p className="text-xs font-semibold text-gray-300 uppercase tracking-wider">Kontak Desa (Telp/WA)</p>
-                <p className="text-sm">(021) 1234 5678 | 0812-3456-7890</p>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Kontak Desa (Telp/WA)</p>
+                <p className="text-sm text-gray-200">(021) 1234 5678 | 0812-3456-7890</p>
               </div>
             </div>
           </div>
 
-          <div className="border-t border-gray-600 pt-3 text-center">
-            <p className="text-xs text-gray-400">&copy; COPYRIGHT DESA KARANGASEM 2026</p>
+          {/* Copyright */}
+          <div className="w-full border-t border-slate-800/60 pt-4 text-center">
+            <p className="text-xs text-gray-500">
+              &copy; 2026 Desa Karangasem. Hak cipta dilindungi.
+            </p>
           </div>
         </div>
       </footer>

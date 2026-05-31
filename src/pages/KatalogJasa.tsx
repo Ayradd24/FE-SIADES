@@ -86,7 +86,7 @@ export default function KatalogJasa() {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
-          Home
+          Beranda
         </button>
 
         <h1 className="text-center text-2xl md:text-3xl font-extrabold text-blue-900 tracking-wide mb-8">
@@ -197,9 +197,8 @@ export default function KatalogJasa() {
             <button
               key={p}
               onClick={() => setPage(p)}
-              className={`w-8 h-8 rounded-lg text-sm font-bold transition-colors ${
-                p === page ? "bg-blue-500 text-white shadow" : "text-gray-500 hover:bg-blue-100"
-              }`}
+              className={`w-8 h-8 rounded-lg text-sm font-bold transition-colors ${p === page ? "bg-blue-500 text-white shadow" : "text-gray-500 hover:bg-blue-100"
+                }`}
             >
               {p}
             </button>
@@ -208,9 +207,8 @@ export default function KatalogJasa() {
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page >= totalPages}
-            className={`text-sm font-medium ${
-              page >= totalPages ? "text-gray-300 cursor-not-allowed" : "text-gray-800 hover:text-blue-600 font-bold"
-            }`}
+            className={`text-sm font-medium ${page >= totalPages ? "text-gray-300 cursor-not-allowed" : "text-gray-800 hover:text-blue-600 font-bold"
+              }`}
           >
             Next &gt;
           </button>

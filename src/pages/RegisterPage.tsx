@@ -309,16 +309,14 @@ const RegisterPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#e8edf5] flex flex-col">
       {/* Header */}
-      <header className="bg-white shadow-sm px-8 py-4 flex items-center gap-4">
-        <img src={logoDesaImg} alt="Logo Desa Karangasem" className="w-14 h-14 object-contain" />
-        <h1 className="text-2xl font-extrabold text-[#1e3a5f]">DAFTAR AKUN PORTAL DESA</h1>
-      </header>
-
-      {/* Back button */}
-      <div className="px-8 pt-6">
+      <header className="bg-white shadow-sm px-8 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <img src={logoDesaImg} alt="Logo Desa Karangasem" className="w-14 h-14 object-contain" />
+          <h1 className="text-2xl font-extrabold text-[#1e3a5f]">DAFTAR AKUN PORTAL DESA</h1>
+        </div>
         <Link
           to="/"
-          className="inline-flex items-center gap-2 bg-blue-400 hover:bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-semibold transition-colors"
+          className="inline-flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-semibold transition-colors shadow-sm"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -328,16 +326,21 @@ const RegisterPage: React.FC = () => {
               d="M10 19l-7-7m0 0l7-7m-7 7h18"
             />
           </svg>
-          Home
+          Beranda
         </Link>
-      </div>
+      </header>
 
       {/* Register Card */}
       <div className="flex-1 flex items-center justify-center px-4 py-8">
-        <div className="bg-white rounded-3xl shadow-lg w-full max-w-lg p-10">
-          <h2 className="text-center text-xl font-extrabold text-[#1e3a5f] mb-8 uppercase tracking-wide">
-            Buat Akun Baru
-          </h2>
+        <div className="bg-white rounded-3xl shadow-lg w-full max-w-3xl p-10">
+          <div className="flex flex-col items-center mb-8">
+            <h2 className="text-center text-2xl font-extrabold text-[#1e3a5f] mb-1">
+              Buat Akun Baru
+            </h2>
+            <p className="text-center text-xs text-gray-500">
+              Lengkapi data diri Anda sesuai dengan identitas resmi
+            </p>
+          </div>
 
           {errors.general && !hasFieldErrors && (
             <div className="mb-5 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm text-center animate-fade-in">
@@ -346,263 +349,272 @@ const RegisterPage: React.FC = () => {
           )}
 
           <form onSubmit={handleSubmit} noValidate>
-            {/* Nama Lengkap */}
-            <div className="mb-4">
-              <label htmlFor="namaLengkap" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
-                Nama Lengkap
-              </label>
-              <input
-                id="namaLengkap"
-                name="namaLengkap"
-                type="text"
-                autoComplete="name"
-                maxLength={MAX_NAME_LENGTH}
-                placeholder="Nama sesuai KTP"
-                value={form.namaLengkap}
-                onChange={handleChange}
-                ref={setFieldRef('namaLengkap')}
-                className={`input-field ${errors.namaLengkap ? 'border-red-400 focus:ring-red-300' : ''}`}
-              />
-              <div className="flex justify-between items-center mt-1">
-                {errors.namaLengkap ? (
-                  <p className="text-xs text-red-500">{errors.namaLengkap}</p>
-                ) : (
-                  <span />
-                )}
-                <p className="text-xs text-gray-400">{form.namaLengkap.length}/{MAX_NAME_LENGTH}</p>
-              </div>
-            </div>
-
-            {/* NIK */}
-            <div className="mb-4">
-              <label htmlFor="NIK" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
-                NIK
-              </label>
-              <input
-                id="NIK"
-                name="NIK"
-                type="text"
-                inputMode="numeric"
-                maxLength={16}
-                autoComplete="off"
-                placeholder="16 digit NIK"
-                value={form.NIK}
-                onChange={handleChange}
-                ref={setFieldRef('NIK')}
-                className={`input-field ${errors.NIK ? 'border-red-400 focus:ring-red-300' : ''}`}
-              />
-              {/* Counter digit NIK */}
-              <div className="flex justify-between items-center mt-1">
-                {errors.NIK ? (
-                  <p className="text-xs text-red-500">{errors.NIK}</p>
-                ) : (
-                  <span />
-                )}
-                <p className={`text-xs ml-auto ${form.NIK.length === 16 ? 'text-green-500' : 'text-gray-400'}`}>
-                  {form.NIK.length}/16 digit
-                </p>
-              </div>
-            </div>
-
-            {/* Nomor Kartu Keluarga */}
-            <div className="mb-4">
-              <label htmlFor="nomorkk" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
-                Nomor Kartu Keluarga
-              </label>
-              <input
-                id="nomorkk"
-                name="nomorkk"
-                type="text"
-                inputMode="numeric"
-                maxLength={16}
-                autoComplete="off"
-                placeholder="16 digit Nomor Kartu Keluarga"
-                value={form.nomorkk}
-                onChange={handleChange}
-                ref={setFieldRef('nomorkk')}
-                className={`input-field ${errors.nomorkk ? 'border-red-400 focus:ring-red-300' : ''}`}
-              />
-              {/* Counter digit KK */}
-              <div className="flex justify-between items-center mt-1">
-                {errors.nomorkk ? (
-                  <p className="text-xs text-red-500">{errors.nomorkk}</p>
-                ) : (
-                  <span />
-                )}
-                <p className={`text-xs ml-auto ${form.nomorkk.length === 16 ? 'text-green-500' : 'text-gray-400'}`}>
-                  {form.nomorkk.length}/16 digit
-                </p>
-              </div>
-            </div>
-
-            {/* Jenis Kelamin */}
-            <div className="mb-4">
-              <label htmlFor="jenisKelamin" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
-                Jenis Kelamin
-              </label>
-              <select
-                id="jenisKelamin"
-                name="jenisKelamin"
-                value={form.jenisKelamin}
-                onChange={(e) => setForm((prev) => ({ ...prev, jenisKelamin: e.target.value as '' | 'L' | 'P' }))}
-                ref={setFieldRef('jenisKelamin')}
-                className={`input-field ${errors.jenisKelamin ? 'border-red-400 focus:ring-red-300' : ''}`}
-              >
-                <option value="">Pilih jenis kelamin</option>
-                <option value="L">Laki-laki</option>
-                <option value="P">Perempuan</option>
-              </select>
-              {errors.jenisKelamin && (
-                <p className="mt-1 text-xs text-red-500">{errors.jenisKelamin}</p>
-              )}
-            </div>
-
-            {/* Nomor HP */}
-            <div className="mb-4">
-              <label htmlFor="nomorHP" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
-                Nomor HP
-              </label>
-              <input
-                id="nomorHP"
-                name="nomorHP"
-                type="text"
-                inputMode="numeric"
-                maxLength={13}
-                autoComplete="tel"
-                placeholder="Contoh: 08xxxxxxxxxx"
-                value={form.nomorHP}
-                onChange={handleChange}
-                ref={setFieldRef('nomorHP')}
-                className={`input-field ${errors.nomorHP ? 'border-red-400 focus:ring-red-300' : ''}`}
-              />
-              <div className="flex justify-between items-center mt-1">
-                {errors.nomorHP ? (
-                  <p className="text-xs text-red-500">{errors.nomorHP}</p>
-                ) : (
-                  <span />
-                )}
-                <p className={`text-xs ml-auto ${form.nomorHP.length >= 10 && form.nomorHP.length <= 13
-                  ? 'text-green-500'
-                  : 'text-gray-400'
-                  }`}>
-                  {form.nomorHP.length}/13 digit
-                </p>
-              </div>
-            </div>
-
-            {/* Alamat */}
-            <div className="mb-4">
-              <label htmlFor="alamat" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
-                Alamat
-              </label>
-              <textarea
-                id="alamat"
-                name="alamat"
-                rows={3}
-                maxLength={MAX_ADDRESS_LENGTH}
-                autoComplete="street-address"
-                placeholder="Masukkan alamat lengkap"
-                value={form.alamat}
-                ref={setFieldRef('alamat')}
-                onChange={(e) => {
-                  setForm((prev) => ({ ...prev, alamat: e.target.value }));
-                  if (errors.alamat) {
-                    setErrors((prev) => ({ ...prev, alamat: undefined }));
-                  }
-                }}
-                className={`input-field resize-none ${errors.alamat ? 'border-red-400 focus:ring-red-300' : ''}`}
-              />
-              <div className="flex justify-between items-center mt-1">
-                {errors.alamat ? (
-                  <p className="text-xs text-red-500">{errors.alamat}</p>
-                ) : (
-                  <span />
-                )}
-                <p className="text-xs text-gray-400">{form.alamat.length}/{MAX_ADDRESS_LENGTH}</p>
-              </div>
-            </div>
-
-            {/* Username */}
-            <div className="mb-4">
-              <label htmlFor="username" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
-                Username
-              </label>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                autoComplete="username"
-                maxLength={MAX_USERNAME_LENGTH}
-                placeholder="Masukan username"
-                value={form.username}
-                onChange={handleChange}
-                ref={setFieldRef('username')}
-                className={`input-field ${errors.username ? 'border-red-400 focus:ring-red-300' : ''}`}
-              />
-              <div className="flex justify-between items-center mt-1">
-                {errors.username ? (
-                  <p className="text-xs text-red-500">{errors.username}</p>
-                ) : (
-                  <span />
-                )}
-                <p className="text-xs text-gray-400">{form.username.length}/{MAX_USERNAME_LENGTH}</p>
-              </div>
-            </div>
-
-            <PasswordInput
-              id="password"
-              label="Password"
-              name="password"
-              value={form.password}
-              onChange={handleChange}
-              show={showPassword}
-              onToggle={() => setShowPassword((v) => !v)}
-              error={errors.password}
-              inputRef={setFieldRef('password')}
-            />
-
-            {/* Password strength indicator */}
-            {form.password.length > 0 && (
-              <div className="-mt-2 mb-4 px-1 space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className={`inline-block w-3 h-3 rounded-full flex-shrink-0 ${form.password.length >= 8 ? 'bg-green-400' : 'bg-gray-300'
-                    }`} />
-                  <span className={`text-xs ${form.password.length >= 8 ? 'text-green-600' : 'text-gray-400'
-                    }`}>Minimal 8 karakter</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`inline-block w-3 h-3 rounded-full flex-shrink-0 ${/[a-zA-Z]/.test(form.password) ? 'bg-green-400' : 'bg-gray-300'
-                    }`} />
-                  <span className={`text-xs ${/[a-zA-Z]/.test(form.password) ? 'text-green-600' : 'text-gray-400'
-                    }`}>Mengandung huruf</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`inline-block w-3 h-3 rounded-full flex-shrink-0 ${/[0-9]/.test(form.password) ? 'bg-green-400' : 'bg-gray-300'
-                    }`} />
-                  <span className={`text-xs ${/[0-9]/.test(form.password) ? 'text-green-600' : 'text-gray-400'
-                    }`}>Mengandung angka</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1">
+              {/* Nama Lengkap */}
+              <div className="mb-4">
+                <label htmlFor="namaLengkap" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
+                  Nama Lengkap
+                </label>
+                <input
+                  id="namaLengkap"
+                  name="namaLengkap"
+                  type="text"
+                  autoComplete="name"
+                  maxLength={MAX_NAME_LENGTH}
+                  placeholder="Nama sesuai KTP"
+                  value={form.namaLengkap}
+                  onChange={handleChange}
+                  ref={setFieldRef('namaLengkap')}
+                  className={`input-field ${errors.namaLengkap ? 'border-red-400 focus:ring-red-300' : ''}`}
+                />
+                <div className="flex justify-between items-center mt-1">
+                  {errors.namaLengkap ? (
+                    <p className="text-xs text-red-500">{errors.namaLengkap}</p>
+                  ) : (
+                    <span />
+                  )}
+                  <p className="text-xs text-gray-400">{form.namaLengkap.length}/{MAX_NAME_LENGTH}</p>
                 </div>
               </div>
-            )}
 
-            <PasswordInput
-              id="konfirmasiPassword"
-              label="Konfirmasi Password"
-              name="konfirmasiPassword"
-              value={form.konfirmasiPassword}
-              onChange={handleChange}
-              show={showKonfirmasi}
-              onToggle={() => setShowKonfirmasi((v) => !v)}
-              error={errors.konfirmasiPassword}
-              placeholder="Ulangi password"
-              inputRef={setFieldRef('konfirmasiPassword')}
-            />
+              {/* NIK */}
+              <div className="mb-4">
+                <label htmlFor="NIK" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
+                  NIK
+                </label>
+                <input
+                  id="NIK"
+                  name="NIK"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={16}
+                  autoComplete="off"
+                  placeholder="16 digit NIK"
+                  value={form.NIK}
+                  onChange={handleChange}
+                  ref={setFieldRef('NIK')}
+                  className={`input-field ${errors.NIK ? 'border-red-400 focus:ring-red-300' : ''}`}
+                />
+                {/* Counter digit NIK */}
+                <div className="flex justify-between items-center mt-1">
+                  {errors.NIK ? (
+                    <p className="text-xs text-red-500">{errors.NIK}</p>
+                  ) : (
+                    <span />
+                  )}
+                  <p className={`text-xs ml-auto ${form.NIK.length === 16 ? 'text-green-500' : 'text-gray-400'}`}>
+                    {form.NIK.length}/16 digit
+                  </p>
+                </div>
+              </div>
+
+              {/* Nomor Kartu Keluarga */}
+              <div className="mb-4">
+                <label htmlFor="nomorkk" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
+                  Nomor Kartu Keluarga
+                </label>
+                <input
+                  id="nomorkk"
+                  name="nomorkk"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={16}
+                  autoComplete="off"
+                  placeholder="16 digit No. KK"
+                  value={form.nomorkk}
+                  onChange={handleChange}
+                  ref={setFieldRef('nomorkk')}
+                  className={`input-field ${errors.nomorkk ? 'border-red-400 focus:ring-red-300' : ''}`}
+                />
+                {/* Counter digit KK */}
+                <div className="flex justify-between items-center mt-1">
+                  {errors.nomorkk ? (
+                    <p className="text-xs text-red-500">{errors.nomorkk}</p>
+                  ) : (
+                    <span />
+                  )}
+                  <p className={`text-xs ml-auto ${form.nomorkk.length === 16 ? 'text-green-500' : 'text-gray-400'}`}>
+                    {form.nomorkk.length}/16 digit
+                  </p>
+                </div>
+              </div>
+
+              {/* Jenis Kelamin */}
+              <div className="mb-4">
+                <label htmlFor="jenisKelamin" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
+                  Jenis Kelamin
+                </label>
+                <select
+                  id="jenisKelamin"
+                  name="jenisKelamin"
+                  value={form.jenisKelamin}
+                  onChange={(e) => setForm((prev) => ({ ...prev, jenisKelamin: e.target.value as '' | 'L' | 'P' }))}
+                  ref={setFieldRef('jenisKelamin')}
+                  className={`input-field ${errors.jenisKelamin ? 'border-red-400 focus:ring-red-300' : ''}`}
+                >
+                  <option value="">Pilih jenis kelamin</option>
+                  <option value="L">Laki-laki</option>
+                  <option value="P">Perempuan</option>
+                </select>
+                {errors.jenisKelamin && (
+                  <p className="mt-1 text-xs text-red-500">{errors.jenisKelamin}</p>
+                )}
+              </div>
+
+              {/* Nomor HP */}
+              <div className="mb-4">
+                <label htmlFor="nomorHP" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
+                  Nomor Telepon (HP)
+                </label>
+                <input
+                  id="nomorHP"
+                  name="nomorHP"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={13}
+                  autoComplete="tel"
+                  placeholder="Contoh: 08xxxxxxxx"
+                  value={form.nomorHP}
+                  onChange={handleChange}
+                  ref={setFieldRef('nomorHP')}
+                  className={`input-field ${errors.nomorHP ? 'border-red-400 focus:ring-red-300' : ''}`}
+                />
+                <div className="flex justify-between items-center mt-1">
+                  {errors.nomorHP ? (
+                    <p className="text-xs text-red-500">{errors.nomorHP}</p>
+                  ) : (
+                    <span />
+                  )}
+                  <p className={`text-xs ml-auto ${form.nomorHP.length >= 10 && form.nomorHP.length <= 13
+                    ? 'text-green-500'
+                    : 'text-gray-400'
+                    }`}>
+                    {form.nomorHP.length}/13 digit
+                  </p>
+                </div>
+              </div>
+
+              {/* Username */}
+              <div className="mb-4">
+                <label htmlFor="username" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
+                  Username
+                </label>
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  autoComplete="username"
+                  maxLength={MAX_USERNAME_LENGTH}
+                  placeholder="Tentukan username Anda"
+                  value={form.username}
+                  onChange={handleChange}
+                  ref={setFieldRef('username')}
+                  className={`input-field ${errors.username ? 'border-red-400 focus:ring-red-300' : ''}`}
+                />
+                <div className="flex justify-between items-center mt-1">
+                  {errors.username ? (
+                    <p className="text-xs text-red-500">{errors.username}</p>
+                  ) : (
+                    <span />
+                  )}
+                  <p className="text-xs text-gray-400">{form.username.length}/{MAX_USERNAME_LENGTH}</p>
+                </div>
+              </div>
+
+              {/* Alamat */}
+              <div className="mb-4 md:col-span-2">
+                <label htmlFor="alamat" className="block text-sm font-semibold text-[#1e3a5f] mb-2">
+                  Alamat
+                </label>
+                <textarea
+                  id="alamat"
+                  name="alamat"
+                  rows={3}
+                  maxLength={MAX_ADDRESS_LENGTH}
+                  autoComplete="street-address"
+                  placeholder="Detail jalan, RT/RW"
+                  value={form.alamat}
+                  ref={setFieldRef('alamat')}
+                  onChange={(e) => {
+                    setForm((prev) => ({ ...prev, alamat: e.target.value }));
+                    if (errors.alamat) {
+                      setErrors((prev) => ({ ...prev, alamat: undefined }));
+                    }
+                  }}
+                  className={`input-field resize-none ${errors.alamat ? 'border-red-400 focus:ring-red-300' : ''}`}
+                />
+                <div className="flex justify-between items-center mt-1">
+                  {errors.alamat ? (
+                    <p className="text-xs text-red-500">{errors.alamat}</p>
+                  ) : (
+                    <span />
+                  )}
+                  <p className="text-xs text-gray-400">{form.alamat.length}/{MAX_ADDRESS_LENGTH}</p>
+                </div>
+              </div>
+
+              {/* Password */}
+              <div className="mb-4">
+                <PasswordInput
+                  id="password"
+                  label="Password"
+                  name="password"
+                  value={form.password}
+                  onChange={handleChange}
+                  show={showPassword}
+                  onToggle={() => setShowPassword((v) => !v)}
+                  error={errors.password}
+                  placeholder="Buat kata sandi"
+                  inputRef={setFieldRef('password')}
+                />
+
+                {/* Password strength indicator */}
+                {form.password.length > 0 && (
+                  <div className="mt-1 px-1 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-block w-3 h-3 rounded-full flex-shrink-0 ${form.password.length >= 8 ? 'bg-green-400' : 'bg-gray-300'
+                        }`} />
+                      <span className={`text-xs ${form.password.length >= 8 ? 'text-green-600' : 'text-gray-400'
+                        }`}>Minimal 8 karakter</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-block w-3 h-3 rounded-full flex-shrink-0 ${/[a-zA-Z]/.test(form.password) ? 'bg-green-400' : 'bg-gray-300'
+                        }`} />
+                      <span className={`text-xs ${/[a-zA-Z]/.test(form.password) ? 'text-green-600' : 'text-gray-400'
+                        }`}>Mengandung huruf</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-block w-3 h-3 rounded-full flex-shrink-0 ${/[0-9]/.test(form.password) ? 'bg-green-400' : 'bg-gray-300'
+                        }`} />
+                      <span className={`text-xs ${/[0-9]/.test(form.password) ? 'text-green-600' : 'text-gray-400'
+                        }`}>Mengandung angka</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Konfirmasi Password */}
+              <div className="mb-4">
+                <PasswordInput
+                  id="konfirmasiPassword"
+                  label="Konfirmasi Password"
+                  name="konfirmasiPassword"
+                  value={form.konfirmasiPassword}
+                  onChange={handleChange}
+                  show={showKonfirmasi}
+                  onToggle={() => setShowKonfirmasi((v) => !v)}
+                  error={errors.konfirmasiPassword}
+                  placeholder="Ulangi kata sandi"
+                  inputRef={setFieldRef('konfirmasiPassword')}
+                />
+              </div>
+            </div>
 
             <button
               type="submit"
               id="btn-daftar"
               disabled={loading}
-              className="w-full mt-2 bg-blue-400 hover:bg-blue-500 text-white font-bold py-3 rounded-2xl text-base transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-2xl text-base transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading && (
                 <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
@@ -621,16 +633,16 @@ const RegisterPage: React.FC = () => {
                   />
                 </svg>
               )}
-              {loading ? 'MENDAFTAR...' : 'DAFTAR'}
+              {loading ? 'MENDAFTAR...' : 'DAFTARKAN AKUN SAYA'}
             </button>
 
             <p className="text-center mt-5 text-sm text-gray-500">
-              Sudah punya akun?{' '}
+              Sudah memiliki akun?{' '}
               <Link
                 to="/login"
-                className="text-blue-500 font-semibold hover:text-blue-700 transition-colors"
+                className="text-blue-600 font-semibold hover:text-blue-800 transition-colors"
               >
-                Masuk
+                Masuk ke Sistem
               </Link>
             </p>
           </form>
