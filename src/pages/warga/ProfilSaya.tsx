@@ -139,6 +139,8 @@ const ProfilSaya: React.FC = () => {
 
     if (!form.username.trim()) {
       newErrors.username = 'Username tidak boleh kosong';
+    } else if (form.username.trim().length < 5) {
+      newErrors.username = 'Username minimal 5 karakter';
     }
 
     if (!form.alamat.trim()) {
