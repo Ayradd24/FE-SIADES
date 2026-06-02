@@ -126,6 +126,11 @@ const getRwNumber = (jabatan: string) => {
   return rwMatch ? rwMatch[1] : '';
 };
 
+const getRtNumber = (jabatan: string) => {
+  const rtMatch = jabatan.match(/RT\s*(\d+)/i);
+  return rtMatch ? rtMatch[1] : '';
+};
+
 export default function StrukturDesa() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -167,16 +172,29 @@ export default function StrukturDesa() {
 
   const ketuaRW = useMemo(
     () =>
-      struktur.filter(
-        (o) =>
-          o.jabatan.toLowerCase().includes('rw') &&
-          !o.jabatan.toLowerCase().includes('rt')
-      ),
+      struktur
+        .filter(
+          (o) =>
+            o.jabatan.toLowerCase().includes('rw') &&
+            !o.jabatan.toLowerCase().includes('rt')
+        )
+        .sort((a, b) => {
+          const aNum = parseInt(getRwNumber(a.jabatan) || '0', 10);
+          const bNum = parseInt(getRwNumber(b.jabatan) || '0', 10);
+          return aNum - bNum;
+        }),
     [struktur]
   );
 
   const ketuaRT = useMemo(
-    () => struktur.filter((o) => o.jabatan.toLowerCase().includes('rt')),
+    () =>
+      struktur
+        .filter((o) => o.jabatan.toLowerCase().includes('rt'))
+        .sort((a, b) => {
+          const aNum = parseInt(getRtNumber(a.jabatan) || '0', 10);
+          const bNum = parseInt(getRtNumber(b.jabatan) || '0', 10);
+          return aNum - bNum;
+        }),
     [struktur]
   );
 
