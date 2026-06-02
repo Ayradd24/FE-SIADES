@@ -198,6 +198,8 @@ const RegisterPage: React.FC = () => {
 
     if (!form.username) {
       newErrors.username = 'Username tidak boleh kosong';
+    } else if (form.username.length < 5) {
+      newErrors.username = 'Username minimal 5 karakter';
     }
 
     if (!form.password) {

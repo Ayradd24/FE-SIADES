@@ -95,7 +95,7 @@ const ForgotPasswordPage: React.FC = () => {
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string }; status?: number } };
       if (err.response?.status === 404) {
-        setErrors({ general: 'Nomor HP tidak terdaftar dalam sistem.' });
+        setErrors({ general: err.response?.data?.message || 'Nomor HP atau NIK tidak terdaftar.' });
       } else if (err.response?.status === 429) {
         setErrors({ general: err.response?.data?.message || 'Terlalu sering meminta OTP. Coba lagi sebentar.' });
       } else if (err.response?.status === 422) {
