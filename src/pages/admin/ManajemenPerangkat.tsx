@@ -5,6 +5,7 @@ import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import Button from '../../components/ui/Button';
 import ToastContainer from '../../components/ui/Toast';
 import { useToast } from '../../hooks/useToast';
+import { authStorage } from '../../lib/authStorage';
 
 interface AdminUser {
   id: string | number;
@@ -32,6 +33,7 @@ const ManajemenPerangkat: React.FC = () => {
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
+  const currentUser = authStorage.getName();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -122,6 +124,10 @@ const ManajemenPerangkat: React.FC = () => {
     e.preventDefault();
     if (!selectedUser) {
       setError('Pilih warga terlebih dahulu menggunakan pencarian');
+      return;
+    }
+    if (selectedUser.name === currentUser) {
+      setError('Anda tidak bisa mengubah jabatan diri sendiri');
       return;
     }
     setFormLoading(true);
@@ -234,9 +240,13 @@ const ManajemenPerangkat: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
                         onClick={() => openDelete(admin.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors ml-1"
-                        title="Cabut Jabatan"
-                        disabled={admin.username === 'kepaladesa'}
+                        className={`p-2 rounded-lg transition-colors ml-1 ${
+                          admin.username === 'kepaladesa' || admin.namaLengkap === currentUser
+                            ? 'text-gray-300 cursor-not-allowed'
+                            : 'text-red-600 hover:bg-red-50'
+                        }`}
+                        title={admin.namaLengkap === currentUser ? "Tidak bisa mencabut jabatan sendiri" : "Cabut Jabatan"}
+                        disabled={admin.username === 'kepaladesa' || admin.namaLengkap === currentUser}
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
